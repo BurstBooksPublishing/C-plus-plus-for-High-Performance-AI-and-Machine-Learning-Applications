@@ -1,0 +1,6 @@
+#include <Eigen/Sparse>
+
+Eigen::SparseMatrix<double> sparse_matrix(1000, 1000);
+sparse_matrix.reserve(1);          // pre-allocate to avoid reallocations
+sparse_matrix.insert(0, 0) = 1.0;  // store single non-zero element
+sparse_matrix.makeCompressed();    // finalize internal structure
