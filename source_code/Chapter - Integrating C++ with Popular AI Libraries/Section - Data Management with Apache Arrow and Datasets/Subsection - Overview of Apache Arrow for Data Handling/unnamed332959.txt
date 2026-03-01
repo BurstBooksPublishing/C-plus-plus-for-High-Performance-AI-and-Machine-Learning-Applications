@@ -1,0 +1,38 @@
+#include <arrow/api.h>
+#include <arrow/io/api.h>
+#include <arrow/filesystem/api.h>
+#include <arrow/dataset/api.h>
+#include <memory>
+#include <string>
+
+arrow::Result<std::shared_ptr<arrow::Table>>
+ReadParquetFile(const std::string& path) {
+    arrow::fs::LocalFileSystem file_system;
+
+    // Open the file for reading
+    ARROW_ASSIGN_OR_RAISE(auto file, file_system.OpenInputFile(path));
+
+    // Create a Parquet file format instance
+    auto format = std::make_shared<arrow::dataset::ParquetFileFormat>();
+
+    // Wrap the file in a FileSource
+    arrow::dataset::FileSource source(file);
+
+    // Create a fragment from the file source
+    ARROW_ASSIGN_OR_RAISE(auto fragment, format->MakeFragment(source));
+
+    // Build a trivial schema; real use would inspect the file
+    auto dummy_schema = arrow::schema({});
+
+    // Create an in-memory dataset from the fragment
+    arrow::dataset::InMemoryDataset dataset(dummy_schema, {fragment});
+
+    // Build a scanner over the dataset
+    ARROW_ASSIGN_OR_RAISE(auto scanner_builder, dataset.NewScan());
+    ARROW_ASSIGN_OR_RAISE(auto scanner, scanner_builder->Finish());
+
+    // Materialize the scanned data into a Table
+    ARROW_ASSIGN_OR_RAISE(auto table, scanner->ToTable());
+
+    return table;
+}
