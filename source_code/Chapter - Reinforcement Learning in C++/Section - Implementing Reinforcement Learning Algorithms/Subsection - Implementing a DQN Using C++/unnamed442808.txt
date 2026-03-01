@@ -1,0 +1,50 @@
+#include <iostream>
+#include <tuple>
+#include <vector>
+#include <random>
+
+// Assume these headers exist and provide the required types
+#include "neural_network.h"
+#include "replay_buffer.h"
+#include "environment.h"
+
+extern Environment env;  // Single global env instance used by original code
+
+std::mt19937 rng(std::random_device{}());
+
+int select_action(const NeuralNetwork& net, const Eigen::VectorXd& state) {
+    static std::uniform_real_distribution<double> dist(0.0, 1.0);
+    constexpr double EPS = 0.1;  // Epsilon-greedy parameter
+    if (dist(rng) < EPS) return rng() % env.action_space_size();
+    return net.argmax(state);
+}
+
+void update_network(NeuralNetwork& net, const std::vector<Transition>& batch, double gamma) {
+    net.train(batch, gamma);
+}
+
+void train(NeuralNetwork& network,
+           ReplayBuffer& buffer,
+           int num_episodes,
+           int batch_size,
+           double gamma)
+{
+    for (int episode = 0; episode < num_episodes; ++episode) {
+        Eigen::VectorXd state = env.reset();
+        double total_reward = 0.0;
+        bool done = false;
+
+        while (!done) {
+            int action = select_action(network, state);
+            auto [next_state, reward, done_flag] = env.step(action);
+            done = done_flag;
+            buffer.add({state, action, reward, next_state, done});
+            state = next_state;
+            total_reward += reward;
+
+            if (buffer.size() >= batch_size)
+                update_network(network, buffer.sample(batch_size), gamma);
+        }
+        std::cout << "Episode " << episode << " Reward: " << total_reward << '\n';
+    }
+}
