@@ -1,0 +1,9 @@
+#include <thread>
+
+void function_1() { /* worker code */ }
+
+int main() {
+    std::thread thread_1(function_1);
+    thread_1.join();
+    return 0;
+}
