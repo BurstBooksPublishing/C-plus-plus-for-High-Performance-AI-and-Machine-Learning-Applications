@@ -1,0 +1,77 @@
+#include 
+#include 
+
+// Function to add two matrices
+std::vector> matrixAddition(const std::vector>& A, 
+                                                const std::vector>& B) {
+    // Check if matrices have the same dimensions
+    if (A.size() != B.size() || A[0].size() != B[0].size()) {
+        throw std::invalid_argument("Matrices must have the same dimensions for addition.");
+    }
+
+    std::vector> result(A.size(), std::vector(A[0].size(), 0.0));
+
+    // Perform element-wise addition
+    for (size_t i = 0; i < A.size(); ++i) {
+        for (size_t j = 0; j < A[0].size(); ++j) {
+            result[i][j] = A[i][j] + B[i][j];
+        }
+    }
+
+    return result;
+}
+
+// Function to multiply two matrices
+std::vector> matrixMultiplication(const std::vector>& A, 
+                                                      const std::vector>& B) {
+    // Check if matrices can be multiplied
+    if (A[0].size() != B.size()) {
+        throw std::invalid_argument("Number of columns in A must equal number of rows in B.");
+    }
+
+    std::vector> result(A.size(), std::vector(B[0].size(), 0.0));
+
+    // Perform matrix multiplication
+    for (size_t i = 0; i < A.size(); ++i) {
+        for (size_t j = 0; j < B[0].size(); ++j) {
+            for (size_t k = 0; k < A[0].size(); ++k) {
+                result[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    // Example matrices
+    std::vector> A = {{1, 2, 3}, {4, 5, 6}};
+    std::vector> B = {{7, 8}, {9, 10}, {11, 12}};
+
+    // Matrix addition (not possible with A and B due to dimension mismatch)
+    std::vector> C = {{1, 2}, {3, 4}};
+    std::vector> D = {{5, 6}, {7, 8}};
+    auto sum = matrixAddition(C, D);
+
+    // Matrix multiplication
+    auto product = matrixMultiplication(A, B);
+
+    // Output results
+    std::cout << "Matrix Addition Result:\n";
+    for (const auto& row : sum) {
+        for (const auto& elem : row) {
+            std::cout << elem << " ";
+        }
+        std::cout << "\n";
+    }
+
+    std::cout << "Matrix Multiplication Result:\n";
+    for (const auto& row : product) {
+        for (const auto& elem : row) {
+            std::cout << elem << " ";
+        }
+        std::cout << "\n";
+    }
+
+    return 0;
+}
