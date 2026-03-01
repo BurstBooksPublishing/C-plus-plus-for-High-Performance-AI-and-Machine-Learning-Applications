@@ -1,0 +1,12 @@
+#include <algorithm>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
+std::unordered_set<std::string> stop_words = {"the", "is", "and"};
+std::vector<std::string> filtered_tokens;
+
+filtered_tokens.reserve(tokenized_text.size());          // avoid reallocations
+for (const auto& token : tokenized_text) {
+    if (stop_words.count(token) == 0) filtered_tokens.push_back(token);
+}
