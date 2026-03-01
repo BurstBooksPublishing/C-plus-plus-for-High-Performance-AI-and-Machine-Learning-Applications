@@ -1,0 +1,25 @@
+#include <vector>
+#include <gtest/gtest.h>
+
+class DataPreprocessor {
+public:
+    // Returns z-score normalized vector: (x - μ) / σ
+    std::vector<double> normalize(const std::vector<double>& data) const {
+        if (data.empty()) return {};
+        const double mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
+        double sq_sum = 0.0;
+        for (double v : data) sq_sum += (v - mean) * (v - mean);
+        const double stddev = std::sqrt(sq_sum / data.size());
+        std::vector<double> out;
+        out.reserve(data.size());
+        for (double v : data) out.push_back((v - mean) / stddev);
+        return out;
+    }
+};
+
+TEST(DataPreprocessorTest, NormalizeTest) {
+    DataPreprocessor preprocessor;
+    std::vector<double> data = {1.0, 2.0, 3.0};
+    auto normalized = preprocessor.normalize(data);
+    EXPECT_NEAR(normalized[0], -1.224744871, 1e-5);
+}
