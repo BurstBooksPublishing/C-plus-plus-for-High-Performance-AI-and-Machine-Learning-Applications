@@ -1,0 +1,83 @@
+#include <cmath>
+#include <iostream>
+#include <random>
+#include <stdexcept>
+#include <vector>
+
+class RNN {
+public:
+    RNN(int input_size, int hidden_size, int output_size, unsigned seed = std::random_device{}())
+        : input_size_(input_size),
+          hidden_size_(hidden_size),
+          output_size_(output_size),
+          gen_(seed) {
+        if (input_size <= 0 || hidden_size <= 0 || output_size <= 0)
+            throw std::invalid_argument("Layer sizes must be positive");
+
+        Wxh_ = makeMatrix(hidden_size_, input_size_);
+        Whh_ = makeMatrix(hidden_size_, hidden_size_);
+        Why_ = makeMatrix(output_size_, hidden_size_);
+        bh_  = makeVector(hidden_size_);
+        by_  = makeVector(output_size_);
+    }
+
+    std::vector<double> forward(const std::vector<double>& input,
+                                std::vector<double>& hidden) const {
+        if (input.size() != static_cast<size_t>(input_size_))
+            throw std::invalid_argument("Input size mismatch");
+        if (hidden.size() != static_cast<size_t>(hidden_size_))
+            throw std::invalid_argument("Hidden size mismatch");
+
+        std::vector<double> new_h(hidden_size_);
+        // new_h = tanh(Wxh * input + Whh * hidden + bh)
+        for (int i = 0; i < hidden_size_; ++i) {
+            double sum = bh_[i];
+            for (int j = 0; j < input_size_; ++j)  sum += Wxh_[i][j] * input[j];
+            for (int j = 0; j < hidden_size_; ++j) sum += Whh_[i][j] * hidden[j];
+            new_h[i] = std::tanh(sum);
+        }
+
+        std::vector<double> out(output_size_);
+        // out = Why * new_h + by
+        for (int i = 0; i < output_size_; ++i) {
+            double sum = by_[i];
+            for (int j = 0; j < hidden_size_; ++j) sum += Why_[i][j] * new_h[j];
+            out[i] = sum;
+        }
+
+        hidden.swap(new_h);
+        return out;
+    }
+
+private:
+    int input_size_, hidden_size_, output_size_;
+    std::vector<std::vector<double>> Wxh_, Whh_, Why_;
+    std::vector<double> bh_, by_;
+    mutable std::mt19937 gen_;
+
+    std::vector<std::vector<double>> makeMatrix(int rows, int cols) {
+        std::normal_distribution<double> dist(0.0, 1.0 / std::sqrt(rows));
+        std::vector<std::vector<double>> m(rows, std::vector<double>(cols));
+        for (auto& row : m)
+            for (double& v : row) v = dist(gen_);
+        return m;
+    }
+
+    std::vector<double> makeVector(int size) {
+        return std::vector<double>(size, 0.0);
+    }
+};
+
+int main() {
+    constexpr int input_size = 3, hidden_size = 4, output_size = 2;
+    RNN rnn(input_size, hidden_size, output_size);
+
+    std::vector<double> input{0.5, 0.1, 0.2};
+    std::vector<double> hidden(hidden_size, 0.0);
+
+    const auto output = rnn.forward(input, hidden);
+
+    for (double v : output) std::cout << v << ' ';
+    std::cout << '\n';
+    return 0;
+}
