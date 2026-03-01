@@ -1,0 +1,53 @@
+#include <arrow/api.h>
+#include <arrow/io/api.h>
+#include <arrow/ipc/api.h>
+#include <arrow/filesystem/api.h>
+#include <arrow/builder.h>
+#include <iostream>
+#include <memory>
+#include <string>
+
+// Read Arrow IPC file into a Table; return nullptr on failure
+std::shared_ptr<arrow::Table> ReadDataset(const std::string& file_path) {
+    auto fs = std::make_shared<arrow::fs::LocalFileSystem>();
+    ARROW_ASSIGN_OR_RAISE(auto file, fs->OpenInputFile(file_path));
+
+    ARROW_ASSIGN_OR_RAISE(auto reader, arrow::ipc::RecordBatchFileReader::Open(file));
+    std::shared_ptr<arrow::Table> table;
+    ARROW_RETURN_NOT_OK(reader->ToTable(&table));
+    return table;
+}
+
+// Write Table to Arrow IPC file; return true on success
+bool WriteDataset(const std::string& file_path, const std::shared_ptr<arrow::Table>& table) {
+    auto fs = std::make_shared<arrow::fs::LocalFileSystem>();
+    ARROW_ASSIGN_OR_RAISE(auto out, fs->OpenOutputStream(file_path));
+
+    ARROW_ASSIGN_OR_RAISE(auto writer, arrow::ipc::MakeFileWriter(out.get(), table->schema()));
+    ARROW_RETURN_NOT_OK(writer->WriteTable(*table));
+    ARROW_RETURN_NOT_OK(writer->Close());
+    return true;
+}
+
+int main() {
+    const std::string input_file = "input.arrow";
+    const std::string output_file = "output.arrow";
+
+    if (auto table = ReadDataset(input_file)) {
+        std::cout << "Schema:\n" << table->schema()->ToString() << "\n";
+    }
+
+    // Build a trivial table: {values: [1,2,3]}
+    arrow::Int64Builder builder;
+    ARROW_RETURN_NOT_OK(builder.AppendValues({1, 2, 3}));
+    std::shared_ptr<arrow::Array> array;
+    ARROW_RETURN_NOT_OK(builder.Finish(&array));
+    auto schema = arrow::schema({arrow::field("values", arrow::int64())});
+    auto demo_table = arrow::Table::Make(schema, {array});
+
+    if (!WriteDataset(output_file, demo_table)) {
+        std::cerr << "Write failed\n";
+        return 1;
+    }
+    return 0;
+}
