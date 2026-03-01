@@ -1,0 +1,18 @@
+#include <stdexcept>
+
+constexpr int GRID_SIZE = 10;   // configurable grid dimension
+
+enum class Action { Up = 0, Down = 1, Left = 2, Right = 3 };
+
+void move_agent(int& x, int& y, Action action) {
+    if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE)
+        throw std::out_of_range("Coordinates out of bounds");
+
+    switch (action) {
+        case Action::Up:    if (y > 0)           --y; break;
+        case Action::Down:  if (y < GRID_SIZE - 1) ++y; break;
+        case Action::Left:  if (x > 0)           --x; break;
+        case Action::Right: if (x < GRID_SIZE - 1) ++x; break;
+        default: throw std::invalid_argument("Invalid action");
+    }
+}
