@@ -1,0 +1,42 @@
+#include <vector>
+#include <stdexcept>
+#include <mpi.h>
+
+// Compute dot product between two equal-length vectors
+double compute_gradient(const std::vector<double>& data,
+                        const std::vector<double>& params)
+{
+    if (data.size() != params.size()) throw std::invalid_argument("size mismatch");
+
+    double gradient = 0.0;
+    for (size_t i = 0; i < data.size(); ++i) gradient += data[i] * params[i];
+    return gradient;
+}
+
+// Synchronous distributed gradient descent across MPI ranks
+void distributed_gradient_descent(std::vector<double>& params,
+                                  const std::vector<double>& data,
+                                  double learning_rate,
+                                  int max_iterations)
+{
+    MPI_Init(nullptr, nullptr);
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    const size_t chunk = data.size() / size;
+    std::vector<double> local_data(data.begin() + rank * chunk,
+                                   data.begin() + (rank + 1) * chunk);
+
+    for (int iter = 0; iter < max_iterations; ++iter) {
+        double local_grad = compute_gradient(local_data, params);
+        double global_grad;
+        MPI_Allreduce(&local_grad, &global_grad, 1, MPI_DOUBLE, MPI_SUM,
+                      MPI_COMM_WORLD);
+
+        for (double& p : params) p -= learning_rate * global_grad;
+    }
+
+    MPI_Finalize();
+}
