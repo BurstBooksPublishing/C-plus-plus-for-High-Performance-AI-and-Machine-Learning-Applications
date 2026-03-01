@@ -1,0 +1,34 @@
+#include <iostream>
+#include <tuple>
+
+class State;
+class Action;
+class Agent {
+public:
+    Action chooseAction(const State& s);
+    void update(const State& s, const Action& a, double r, const State& s_);
+};
+class Environment {
+public:
+    State reset();
+    std::tuple<State,double> step(const Action& a);
+    bool isTerminal(const State& s);
+};
+
+void train(Agent& agent, Environment& env, int numEpisodes) {
+    for (int episode = 0; episode < numEpisodes; ++episode) {
+        State state = env.reset();
+        double totalReward = 0.0;
+
+        while (!env.isTerminal(state)) {
+            Action action = agent.chooseAction(state);
+            auto [nextState, reward] = env.step(action);
+            totalReward += reward;
+
+            agent.update(state, action, reward, nextState);
+            state = nextState;
+        }
+
+        std::cout << "Episode " << episode << " Total Reward: " << totalReward << '\n';
+    }
+}
