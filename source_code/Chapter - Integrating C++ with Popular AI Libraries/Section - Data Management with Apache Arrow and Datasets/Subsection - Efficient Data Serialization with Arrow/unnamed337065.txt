@@ -1,0 +1,23 @@
+#include <arrow/api.h>
+#include <arrow/io/api.h>
+#include <arrow/ipc/api.h>
+#include <memory>
+
+// Build the table (example data)
+auto schema = arrow::schema({
+    arrow::field("id", arrow::int64()),
+    arrow::field("value", arrow::float64())
+});
+
+std::shared_ptr<arrow::Table> table;
+arrow::Table::FromRecordBatches(schema, {}, &table); // empty for brevity
+
+// Serialize the table to an in-memory buffer
+std::shared_ptr<arrow::Buffer> buffer;
+{
+    auto stream = arrow::io::BufferOutputStream::Create().ValueOrDie();
+    auto writer = arrow::ipc::MakeStreamWriter(stream.get(), table->schema()).ValueOrDie();
+    writer->WriteTable(*table).ok();          // ignore status in minimal example
+    writer->Close().ok();
+    buffer = stream->Finish().ValueOrDie();
+}
