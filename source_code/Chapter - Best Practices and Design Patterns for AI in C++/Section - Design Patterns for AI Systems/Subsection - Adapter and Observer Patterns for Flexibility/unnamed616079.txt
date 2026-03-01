@@ -1,0 +1,41 @@
+#include <vector>
+#include <memory>
+
+// Legacy data source interface
+class LegacyDataSource {
+public:
+    std::vector<double> getData() const {
+        return {1.0, 2.0, 3.0};
+    }
+};
+
+// Modern ML model interface
+class MLModel {
+public:
+    void setData(const std::vector<double>& data) {
+        // Process data
+    }
+};
+
+// Adapter to bridge the two interfaces
+class DataAdapter {
+private:
+    std::unique_ptr<LegacyDataSource> legacySource;
+public:
+    explicit DataAdapter(std::unique_ptr<LegacyDataSource> source)
+        : legacySource(std::move(source)) {}
+
+    std::vector<double> getAdaptedData() const {
+        auto data = legacySource->getData();
+        // Transform data if necessary
+        return data;
+    }
+};
+
+// Usage
+int main() {
+    MLModel model;
+    auto adapter = std::make_unique<DataAdapter>(std::make_unique<LegacyDataSource>());
+    model.setData(adapter->getAdaptedData());
+    return 0;
+}
