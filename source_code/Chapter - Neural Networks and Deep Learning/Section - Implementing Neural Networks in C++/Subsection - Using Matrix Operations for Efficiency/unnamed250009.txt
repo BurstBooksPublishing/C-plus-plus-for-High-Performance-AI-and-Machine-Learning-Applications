@@ -1,0 +1,11 @@
+#include <Eigen/Dense>
+#include <cmath>
+
+Eigen::MatrixXd W(4, 3);          // Weight matrix
+Eigen::VectorXd a_prev(3);        // Activation vector from previous layer
+Eigen::VectorXd b(4);             // Bias vector
+
+// Sigmoid activation: σ(x) = 1 / (1 + exp(-x))
+auto sigmoid = [](double x) { return 1.0 / (1.0 + std::exp(-x)); };
+
+Eigen::VectorXd a = (W * a_prev + b).unaryExpr(sigmoid);
