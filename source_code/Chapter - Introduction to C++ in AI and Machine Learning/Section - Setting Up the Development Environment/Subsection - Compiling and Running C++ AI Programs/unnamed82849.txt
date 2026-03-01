@@ -1,0 +1,41 @@
+#include <Eigen/Dense>
+#include <iostream>
+#include <vector>
+#include <stdexcept>
+#include <random>
+
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
+
+class NeuralNetwork {
+public:
+    NeuralNetwork(const std::vector<int>& layers) {
+        if (layers.size() < 2) throw std::invalid_argument("Need at least input & output layers");
+        for (size_t i = 0; i < layers.size() - 1; ++i) {
+            weights_.emplace_back(MatrixXd::Random(layers[i + 1], layers[i]));
+            biases_.emplace_back(VectorXd::Zero(layers[i + 1]));
+        }
+    }
+
+    VectorXd predict(const VectorXd& input) const {
+        VectorXd a = input;
+        for (size_t i = 0; i < weights_.size(); ++i) {
+            a = (weights_[i] * a + biases_[i]).unaryExpr(&sigmoid);
+        }
+        return a;
+    }
+
+private:
+    std::vector<MatrixXd> weights_;
+    std::vector<VectorXd> biases_;
+
+    static double sigmoid(double x) { return 1.0 / (1.0 + std::exp(-x)); }
+};
+
+int main() {
+    NeuralNetwork net({2, 4, 1});
+    VectorXd in(2);
+    in << 0.5, -0.3;
+    std::cout << net.predict(in) << '\n';
+    return 0;
+}
