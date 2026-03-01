@@ -1,0 +1,14 @@
+bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+TF_VERSION="2.10.0"
+ARCH="linux-x86_64"
+TARBALL="libtensorflow-cpu-${ARCH}-${TF_VERSION}.tar.gz"
+URL="https://storage.googleapis.com/tensorflow/libtensorflow/${TARBALL}"
+
+# Download and extract libtensorflow to /usr/local
+curl -fsSL "${URL}" -o "${TARBALL}"
+tar -xzf "${TARBALL}" -C /usr/local
+ldconfig   # refresh linker cache
+rm "${TARBALL}"
