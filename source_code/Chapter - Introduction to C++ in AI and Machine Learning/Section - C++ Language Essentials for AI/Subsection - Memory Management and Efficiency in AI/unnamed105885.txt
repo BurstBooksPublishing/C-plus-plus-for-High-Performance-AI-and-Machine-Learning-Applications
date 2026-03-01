@@ -1,0 +1,12 @@
+#include <vector>
+#include <utility>   // std::move
+#include <iostream>  // demo output
+
+int main() {
+    std::vector<double> data{1.0, 2.0, 3.0};
+
+    std::vector<double> moved_data = std::move(data); // data is left in valid-but-unspecified state
+
+    // moved_data now owns the memory; data.empty() is likely true
+    std::cout << "moved_data size: " << moved_data.size() << '\n';
+}
