@@ -1,0 +1,14 @@
+#include <cmath>
+#include <cassert>
+
+// Gradient of f(x)=x²
+double compute_gradient(double x) {
+    return 2.0 * x;
+}
+
+// Minimal sanity check
+void test_gradient() {
+    const double x = 3.0;
+    const double expected = 6.0;
+    assert(std::abs(compute_gradient(x) - expected) < 1e-9);
+}
