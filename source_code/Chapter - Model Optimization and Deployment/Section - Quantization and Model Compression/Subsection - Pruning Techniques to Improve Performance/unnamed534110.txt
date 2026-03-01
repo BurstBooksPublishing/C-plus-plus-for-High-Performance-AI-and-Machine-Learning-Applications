@@ -1,0 +1,18 @@
+#include <xtensor/xarray.hpp>
+#include <xtensor/xview.hpp>
+#include <xtensor/xnorm.hpp>
+#include <xtensor/xio.hpp>
+
+// Zero-out entire filters whose L1 norm is below threshold.
+// Shape assumed: [out_channels][in_channels][height][width]
+void pruneFilters(xt::xarray<double>& filters, double threshold)
+{
+    const auto outChannels = filters.shape()[0];
+    for (std::size_t i = 0; i < outChannels; ++i) {
+        auto filter = xt::view(filters, i, xt::all(), xt::all(), xt::all());
+        double norm = xt::norm_l1(filter)();
+        if (norm < threshold) {
+            filter = 0.0;  // broadcasted assignment
+        }
+    }
+}
