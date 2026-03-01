@@ -1,0 +1,7 @@
+#include <vector>
+#include <numeric>
+#include <cmath>
+
+std::vector<double> data(1'000'000);
+std::iota(data.begin(), data.end(), 0.0);   // fill with 0..999'999
+// perform computations here; vector frees memory automatically
