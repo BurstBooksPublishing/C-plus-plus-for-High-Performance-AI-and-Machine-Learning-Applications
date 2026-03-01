@@ -1,0 +1,17 @@
+#include <spdlog/spdlog.h>
+#include <stdexcept>
+
+void run_inference(std::size_t batch_size)
+{
+    spdlog::set_level(spdlog::level::debug);
+    spdlog::info("Starting inference on batch size {}", batch_size);
+
+    try {
+        // --- real inference work goes here ---
+        // throw std::runtime_error("demo failure");
+    }
+    catch (const std::exception& e) {
+        spdlog::error("Inference failed: {}", e.what());
+        throw;               // re-throw to let caller decide fate
+    }
+}
