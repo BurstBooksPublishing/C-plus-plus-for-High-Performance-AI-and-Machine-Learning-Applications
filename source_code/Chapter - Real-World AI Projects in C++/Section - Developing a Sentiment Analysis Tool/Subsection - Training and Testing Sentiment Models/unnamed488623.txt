@@ -1,0 +1,14 @@
+#include <map>
+#include <string>
+#include <vector>
+
+// Build a word-frequency map from a collection of tokenized documents.
+std::map<std::string, std::size_t> createBow(const std::vector<std::vector<std::string>>& texts) {
+    std::map<std::string, std::size_t> bow;
+    for (const auto& text : texts) {
+        for (const auto& word : text) {
+            ++bow[word];          // increment frequency for each word
+        }
+    }
+    return bow;
+}
