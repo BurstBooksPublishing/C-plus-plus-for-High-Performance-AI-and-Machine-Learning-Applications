@@ -1,0 +1,7 @@
+#include <Eigen/Core>
+
+// One-time call before any Eigen operation; safe to repeat, idempotent.
+static const int once = [] {
+    Eigen::setNbThreads(4);   // limit to 4 OpenMP threads
+    return 0;
+}();
