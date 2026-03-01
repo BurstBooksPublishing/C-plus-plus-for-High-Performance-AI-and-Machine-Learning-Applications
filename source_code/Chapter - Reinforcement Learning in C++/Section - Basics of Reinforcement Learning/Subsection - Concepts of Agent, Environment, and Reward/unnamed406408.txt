@@ -1,0 +1,17 @@
+#include <memory>
+
+class Action;
+class State;
+class Policy;
+
+class Agent {
+public:
+    explicit Agent(std::shared_ptr<const Policy> p) : policy(std::move(p)) {}
+
+    Action chooseAction(const State& state) const {
+        return policy->evaluate(state);
+    }
+
+private:
+    std::shared_ptr<const Policy> policy;
+};
