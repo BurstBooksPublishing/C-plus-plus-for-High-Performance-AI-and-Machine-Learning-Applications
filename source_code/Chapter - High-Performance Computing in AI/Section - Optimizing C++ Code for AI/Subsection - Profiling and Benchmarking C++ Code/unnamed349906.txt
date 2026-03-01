@@ -1,0 +1,15 @@
+#include <gperftools/profiler.h>
+#include <iostream>
+
+void compute() {
+    volatile double sink = 0.;          // prevent loop from being optimized away
+    for (int i = 0; i < 1'000'000; ++i)
+        sink = i * i;
+}
+
+int main() {
+    ProfilerStart("profile_output.prof");
+    compute();
+    ProfilerStop();
+    std::cout << "Profiling completed. Check profile_output.prof for details.\n";
+}
