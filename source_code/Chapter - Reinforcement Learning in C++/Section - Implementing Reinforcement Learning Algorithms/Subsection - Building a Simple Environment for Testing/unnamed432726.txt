@@ -1,0 +1,6 @@
+#include <stdexcept>
+
+double get_reward(int x, int y) {
+    // Reward only when agent reaches the goal
+    return (x == goal_x && y == goal_y) ? goal_reward : step_reward;
+}
