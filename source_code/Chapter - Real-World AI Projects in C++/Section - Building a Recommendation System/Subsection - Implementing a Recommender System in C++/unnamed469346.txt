@@ -1,0 +1,23 @@
+#include <vector>
+#include <random>
+#include <algorithm>
+
+constexpr int num_users = 1000;
+constexpr int num_items = 500;
+constexpr int latent_dim = 10;
+
+std::vector<std::vector<double>> user_matrix(num_users, std::vector<double>(latent_dim));
+std::vector<std::vector<double>> item_matrix(num_items, std::vector<double>(latent_dim));
+
+void init_matrix(std::vector<std::vector<double>>& mat, std::mt19937& gen) {
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    for (auto& row : mat)
+        std::generate(row.begin(), row.end(), [&]() { return dist(gen); });
+}
+
+int main() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    init_matrix(user_matrix, gen);
+    init_matrix(item_matrix, gen);
+}
