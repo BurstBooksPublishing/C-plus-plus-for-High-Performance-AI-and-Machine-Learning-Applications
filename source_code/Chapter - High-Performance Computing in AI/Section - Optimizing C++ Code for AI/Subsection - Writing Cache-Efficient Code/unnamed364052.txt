@@ -1,0 +1,7 @@
+#include <array>
+#include <cstddef>
+
+// One cache-line–sized block of 16 floats (64 B on x86-64)
+struct alignas(64) CacheLine {
+    std::array<float, 16> data;
+};
