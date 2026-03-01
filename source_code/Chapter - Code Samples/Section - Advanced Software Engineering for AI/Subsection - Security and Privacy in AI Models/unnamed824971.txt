@@ -1,0 +1,77 @@
+#include <algorithm>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+class Observer {
+public:
+    virtual ~Observer() = default;
+    virtual void update(const std::string& message) = 0;
+};
+
+class Subject {
+public:
+    void attach(std::weak_ptr<Observer> observer) {
+        observers_.push_back(std::move(observer));
+    }
+
+    void detach(std::weak_ptr<Observer> observer) {
+        observers_.erase(
+            std::remove_if(observers_.begin(), observers_.end(),
+                [&observer](const std::weak_ptr<Observer>& wp) {
+                    return wp.lock() == observer.lock();
+                }),
+            observers_.end()
+        );
+    }
+
+    void setState(const std::string& newState) {
+        state_ = newState;
+        notify();
+    }
+
+private:
+    void notify() {
+        for (auto it = observers_.begin(); it != observers_.end(); ) {
+            if (auto sp = it->lock()) {
+                sp->update(state_);
+                ++it;
+            } else {
+                it = observers_.erase(it); // auto-remove expired observers
+            }
+        }
+    }
+
+    std::string state_;
+    std::vector<std::weak_ptr<Observer>> observers_;
+};
+
+class ConcreteObserver : public Observer,
+                         public std::enable_shared_from_this<ConcreteObserver> {
+public:
+    explicit ConcreteObserver(std::string name) : name_(std::move(name)) {}
+
+    void update(const std::string& message) override {
+        std::cout << name_ << " received update: " << message << '\n';
+    }
+
+private:
+    std::string name_;
+};
+
+int main() {
+    Subject subject;
+
+    auto obs1 = std::make_shared<ConcreteObserver>("Observer 1");
+    auto obs2 = std::make_shared<ConcreteObserver>("Observer 2");
+
+    subject.attach(obs1);
+    subject.attach(obs2);
+
+    subject.setState("State 1");
+    subject.setState("State 2");
+
+    subject.detach(obs1);
+    subject.setState("State 3");
+}
