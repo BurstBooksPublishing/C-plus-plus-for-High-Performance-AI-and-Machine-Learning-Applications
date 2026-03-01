@@ -1,0 +1,29 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+void invertColors(cv::Mat& image, int row) {
+    cv::Vec3b* ptr = image.ptr<cv::Vec3b>(row);
+    for (int j = 0; j < image.cols; ++j) {
+        ptr[j] = cv::Vec3b(255 - ptr[j][0], 255 - ptr[j][1], 255 - ptr[j][2]);
+    }
+}
+
+int main(int argc, char** argv) {
+    const std::string inputPath = (argc > 1) ? argv[1] : "input.jpg";
+    cv::Mat image = cv::imread(inputPath, cv::IMREAD_COLOR);
+    if (image.empty()) {
+        std::cerr << "Failed to load image: " << inputPath << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    cv::parallel_for_(cv::Range(0, image.rows), [&](const cv::Range& range) {
+        for (int r = range.start; r < range.end; ++r) {
+            invertColors(image, r);
+        }
+    });
+
+    cv::imshow("Inverted Image", image);
+    cv::waitKey(0);
+
+    return EXIT_SUCCESS;
+}
