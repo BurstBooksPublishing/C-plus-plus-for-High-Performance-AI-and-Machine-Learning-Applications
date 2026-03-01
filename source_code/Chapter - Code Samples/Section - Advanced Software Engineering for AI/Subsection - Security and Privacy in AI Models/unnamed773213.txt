@@ -1,0 +1,55 @@
+#include <iostream>
+#include <random>
+#include <tuple>
+
+class CustomEnv {
+public:
+    CustomEnv(int state_size, int action_size, int goal_state = 5)
+        : state_size_(state_size),
+          action_size_(action_size),
+          goal_state_(goal_state),
+          current_state_(0),
+          gen_(std::random_device{}()) {
+        reset();
+    }
+
+    int reset() {
+        std::uniform_int_distribution<> dis(0, state_size_ - 1);
+        current_state_ = dis(gen_);
+        return current_state_;
+    }
+
+    std::tuple<int, double, bool> step(int action) {
+        if (action < 0 || action >= action_size_) {
+            throw std::out_of_range("Invalid action");
+        }
+        int next_state = (current_state_ + action) % state_size_;
+        double reward = (next_state == goal_state_) ? 1.0 : 0.0;
+        bool done = (next_state == goal_state_);
+        current_state_ = next_state;
+        return {next_state, reward, done};
+    }
+
+    int state() const { return current_state_; }
+
+private:
+    int state_size_;
+    int action_size_;
+    int goal_state_;
+    int current_state_;
+    std::mt19937 gen_;
+};
+
+int main() {
+    CustomEnv env(10, 2);
+    int state = env.reset();
+    std::cout << "Initial state: " << state << '\n';
+
+    for (int i = 0; i < 10; ++i) {
+        int action = i % 2;
+        auto [next_state, reward, done] = env.step(action);
+        std::cout << "Step " << i << ": state=" << next_state
+                  << ", reward=" << reward << ", done=" << done << '\n';
+        if (done) break;
+    }
+}
