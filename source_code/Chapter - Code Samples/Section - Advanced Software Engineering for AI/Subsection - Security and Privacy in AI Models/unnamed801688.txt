@@ -1,0 +1,26 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <numeric>
+#include <vector>
+
+struct Layer {
+    std::vector<float> weights;
+    float bias{};
+};
+
+// In-place magnitude pruning: zero-out weights whose absolute value is below threshold
+void pruneLayer(Layer& layer, float threshold) {
+    std::transform(layer.weights.begin(), layer.weights.end(), layer.weights.begin(),
+                   [=](float w) { return std::fabs(w) < threshold ? 0.0f : w; });
+}
+
+int main() {
+    Layer layer{{0.1f, -0.05f, 0.3f, -0.01f, 0.4f}, 0.2f};
+
+    pruneLayer(layer, 0.1f);
+
+    std::cout << "Pruned weights: ";
+    for (float w : layer.weights) std::cout << w << ' ';
+    std::cout << '\n';
+}
