@@ -1,0 +1,58 @@
+#include <memory>
+#include <string>
+#include <stdexcept>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+class AIPipeline {
+public:
+    AIPipeline() {
+        try {
+            logger_ = spdlog::get("AIPipeline");
+            if (!logger_) {
+                logger_ = spdlog::stdout_color_mt("AIPipeline");
+            }
+            logger_->set_level(spdlog::level::debug);
+        } catch (const spdlog::spdlog_ex& ex) {
+            throw std::runtime_error(std::string("Logger init failed: ") + ex.what());
+        }
+    }
+
+    void preprocessData(const std::string& data) {
+        if (data.empty()) {
+            logger_->error("Empty data provided");
+            throw std::invalid_argument("data cannot be empty");
+        }
+        logger_->debug("Preprocessing: {}", data);
+        // TODO: real preprocessing
+        logger_->info("Preprocessing complete");
+    }
+
+    void trainModel() {
+        logger_->debug("Training started");
+        // TODO: real training
+        logger_->info("Training complete");
+    }
+
+    void evaluateModel() {
+        logger_->debug("Evaluation started");
+        // TODO: real evaluation
+        logger_->info("Evaluation complete");
+    }
+
+private:
+    std::shared_ptr<spdlog::logger> logger_;
+};
+
+int main() {
+    try {
+        AIPipeline pipeline;
+        pipeline.preprocessData("sample_data.csv");
+        pipeline.trainModel();
+        pipeline.evaluateModel();
+    } catch (const std::exception& ex) {
+        spdlog::critical("Pipeline failed: {}", ex.what());
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
