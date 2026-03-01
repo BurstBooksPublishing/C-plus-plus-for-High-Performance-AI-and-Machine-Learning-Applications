@@ -1,0 +1,17 @@
+#include <cstdlib>          // std::exit
+#include <iostream>         // std::cerr
+#include <stdexcept>        // std::exception
+#include <rl/environment>   // assumed RL library
+#include <rl/agent>         // assumed RL library
+
+int main() {
+    try {
+        rl::Environment env("CartPole-v1");
+        rl::Agent agent(env);
+        agent.train(1000);
+    } catch (const std::exception& ex) {
+        std::cerr << "Fatal: " << ex.what() << '\n';
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
