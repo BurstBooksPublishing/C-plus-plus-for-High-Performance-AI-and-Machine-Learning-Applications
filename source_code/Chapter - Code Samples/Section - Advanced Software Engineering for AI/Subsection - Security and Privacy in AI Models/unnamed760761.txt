@@ -1,0 +1,95 @@
+#include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <random>
+#include <vector>
+
+class Agent {
+public:
+    Agent(std::size_t stateSize, std::size_t actionSize)
+        : stateSize_(stateSize), actionSize_(actionSize),
+          qTable_(stateSize, std::vector<double>(actionSize, 0.0)) {}
+
+    std::size_t chooseAction(std::size_t state, double epsilon) {
+        thread_local static std::mt19937 gen{
+            static_cast<unsigned>(std::chrono::steady_clock::now()
+                                      .time_since_epoch()
+                                      .count())};
+        std::uniform_real_distribution<> dis(0.0, 1.0);
+        if (dis(gen) < epsilon) {
+            std::uniform_int_distribution<std::size_t> actionDist(0, actionSize_ - 1);
+            return actionDist(gen);
+        }
+        return std::distance(qTable_[state].begin(),
+                             std::max_element(qTable_[state].begin(),
+                                              qTable_[state].end()));
+    }
+
+    void update(std::size_t state, std::size_t action, double reward,
+                std::size_t nextState, double alpha, double gamma) {
+        double maxNext = *std::max_element(qTable_[nextState].begin(),
+                                           qTable_[nextState].end());
+        qTable_[state][action] +=
+            alpha * (reward + gamma * maxNext - qTable_[state][action]);
+    }
+
+private:
+    std::size_t stateSize_;
+    std::size_t actionSize_;
+    std::vector<std::vector<double>> qTable_;
+};
+
+class Environment {
+public:
+    Environment(std::size_t stateSize, std::size_t actionSize)
+        : stateSize_(stateSize), actionSize_(actionSize), currentState_(0) {}
+
+    struct StepResult {
+        std::size_t nextState;
+        double reward;
+    };
+
+    StepResult step(std::size_t action) {
+        std::size_t next = (currentState_ + action) % stateSize_;
+        double reward = (next == stateSize_ - 1) ? 1.0 : -0.1;
+        currentState_ = next;
+        return {next, reward};
+    }
+
+    void reset() { currentState_ = 0; }
+
+private:
+    std::size_t stateSize_;
+    std::size_t actionSize_;
+    std::size_t currentState_;
+};
+
+int main() {
+    const std::size_t stateSize = 10;
+    const std::size_t actionSize = 2;
+    const int episodes = 1000;
+    const double alpha = 0.1;
+    const double gamma = 0.9;
+    double epsilon = 1.0;
+    const double epsilonDecay = 0.995;
+
+    Environment env(stateSize, actionSize);
+    Agent agent(stateSize, actionSize);
+
+    for (int ep = 0; ep < episodes; ++ep) {
+        env.reset();
+        std::size_t state = 0;
+        bool done = false;
+        while (!done) {
+            std::size_t action = agent.chooseAction(state, epsilon);
+            auto [next, reward] = env.step(action);
+            agent.update(state, action, reward, next, alpha, gamma);
+            state = next;
+            if (state == stateSize - 1) done = true;
+        }
+        epsilon *= epsilonDecay;
+    }
+
+    std::cout << "Training complete!\n";
+    return 0;
+}
