@@ -1,0 +1,7 @@
+#include <vector>
+#include <utility>
+
+void process_data(std::vector<int>&& data) {
+    auto owned = std::move(data);          // take ownership of the rvalue
+    // critical work on owned vector starts here
+}
