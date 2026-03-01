@@ -1,0 +1,33 @@
+#include <vector>
+#include <tuple>
+#include <cstddef>
+
+using Interaction = std::tuple<std::size_t, std::size_t, float>;
+using Matrix      = std::vector<std::vector<float>>;
+
+void sgd_update(const std::vector<Interaction>& interactions,
+                Matrix& user_matrix,
+                Matrix& item_matrix,
+                std::size_t latent_dim,
+                float learning_rate,
+                float lambda)
+{
+    #pragma omp parallel for schedule(static)
+    for (std::size_t i = 0; i < interactions.size(); ++i) {
+        const auto& [user_id, item_id, rating] = interactions[i];
+
+        float prediction = 0.0f;
+        for (std::size_t k = 0; k < latent_dim; ++k)
+            prediction += user_matrix[user_id][k] * item_matrix[item_id][k];
+
+        float error = rating - prediction;
+
+        for (std::size_t k = 0; k < latent_dim; ++k) {
+            float u_f = user_matrix[user_id][k];
+            float i_f = item_matrix[item_id][k];
+
+            user_matrix[user_id][k] += learning_rate * (error * i_f - lambda * u_f);
+            item_matrix[item_id][k] += learning_rate * (error * u_f - lambda * i_f);
+        }
+    }
+}
