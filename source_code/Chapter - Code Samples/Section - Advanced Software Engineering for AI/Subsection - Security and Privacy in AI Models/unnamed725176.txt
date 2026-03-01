@@ -1,0 +1,46 @@
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/public/session.h>
+#include <tensorflow/core/framework/tensor.h>
+#include <iostream>
+#include <memory>
+
+int main() {
+    // Build and own the session
+    std::unique_ptr<tensorflow::Session> session(tensorflow::NewSession(tensorflow::SessionOptions()));
+    if (!session) {
+        std::cerr << "Could not create TensorFlow session\n";
+        return 1;
+    }
+
+    // Load frozen graph
+    tensorflow::GraphDef graph_def;
+    tensorflow::Status status = tensorflow::ReadBinaryProto(tensorflow::Env::Default(), "model.pb", &graph_def);
+    if (!status.ok()) {
+        std::cerr << "Cannot read model: " << status.ToString() << "\n";
+        return 1;
+    }
+
+    // Import graph
+    status = session->Create(graph_def);
+    if (!status.ok()) {
+        std::cerr << "Cannot create graph: " << status.ToString() << "\n";
+        return 1;
+    }
+
+    // Build 1×2 float input
+    tensorflow::Tensor input(tensorflow::DT_FLOAT, tensorflow::TensorShape({1, 2}));
+    input.matrix<float>()(0, 0) = 1.0f;
+    input.matrix<float>()(0, 1) = 2.0f;
+
+    // Run
+    std::vector<tensorflow::Tensor> outputs;
+    status = session->Run({{"input_layer", input}}, {"output_layer"}, {}, &outputs);
+    if (!status.ok()) {
+        std::cerr << "Inference failed: " << status.ToString() << "\n";
+        return 1;
+    }
+
+    // Print first output tensor
+    std::cout << "Output:\n" << outputs[0].DebugString() << std::endl;
+    return 0;
+}
