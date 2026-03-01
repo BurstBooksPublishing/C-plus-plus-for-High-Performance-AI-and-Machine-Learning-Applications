@@ -1,0 +1,23 @@
+#include 
+#include 
+#include 
+
+// Function to calculate the probability using Bayes' theorem
+double bayesTheorem(double prior, double likelihood, double evidence) {
+    return (prior * likelihood) / evidence; // Bayes' formula
+}
+
+int main() {
+    // Example: Probability of having a disease given a positive test result
+    double prior = 0.01; // Prior probability of having the disease (1%)
+    double likelihood = 0.95; // Probability of testing positive given the disease (95%)
+    double evidence = 0.05; // Probability of testing positive overall (5%)
+
+    // Calculate the posterior probability using Bayes' theorem
+    double posterior = bayesTheorem(prior, likelihood, evidence);
+
+    // Output the result
+    std::cout << "Posterior Probability: " << posterior << std::endl;
+
+    return 0;
+}
