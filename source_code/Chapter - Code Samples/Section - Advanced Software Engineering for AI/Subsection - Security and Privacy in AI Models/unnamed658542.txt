@@ -1,0 +1,50 @@
+// tf_torch_inference.cc
+// Build: g++ -std=c++17 tf_torch_inference.cc -ltensorflow_cc -ltensorflow_framework -ltorch -ltorch_cpu -o tf_torch_inference
+
+#include <torch/torch.h>
+#include <tensorflow/cc/client/client_session.h>
+#include <tensorflow/cc/ops/standard_ops.h>
+#include <tensorflow/cc/framework/ops.h>
+#include <tensorflow/core/framework/tensor.h>
+#include <iostream>
+#include <vector>
+#include <memory>
+
+namespace tf = tensorflow;
+
+int main() {
+    // ---------- TensorFlow C++ inference ----------
+    const tf::Scope root = tf::Scope::NewRootScope();
+    auto A = tf::ops::Placeholder(root.WithOpName("A"), tf::DT_FLOAT);
+    auto B = tf::ops::Placeholder(root.WithOpName("B"), tf::DT_FLOAT);
+    auto C = tf::ops::MatMul(root.WithOpName("C"), A, B);
+
+    std::unique_ptr<tf::ClientSession> session(new tf::ClientSession(root));
+
+    const int dim = 2;
+    tensorflow::Tensor A_tensor(tf::DT_FLOAT, tensorflow::TensorShape({dim, dim}));
+    tensorflow::Tensor B_tensor(tf::DT_FLOAT, tensorflow::TensorShape({dim, dim}));
+
+    auto A_map = A_tensor.matrix<float>();
+    auto B_map = B_tensor.matrix<float>();
+    for (int i = 0; i < dim; ++i)
+        for (int j = 0; j < dim; ++j) {
+            A_map(i, j) = i + j;
+            B_map(i, j) = i - j;
+        }
+
+    std::vector<tensorflow::Tensor> outputs;
+    TF_CHECK_OK(session->Run({{A, A_tensor}, {B, B_tensor}}, {C}, &outputs));
+
+    std::cout << "TensorFlow result:\n" << outputs[0].matrix<float>() << "\n";
+
+    // ---------- PyTorch C++ inference ----------
+    torch::manual_seed(0);
+    torch::Tensor a = torch::randn({2, 2});
+    torch::Tensor b = torch::randn({2, 2});
+    torch::Tensor c = torch::mm(a, b);
+
+    std::cout << "PyTorch result:\n" << c << std::endl;
+
+    return 0;
+}
