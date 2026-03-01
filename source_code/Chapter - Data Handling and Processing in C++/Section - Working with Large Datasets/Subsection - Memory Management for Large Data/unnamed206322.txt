@@ -1,0 +1,8 @@
+#include <vector>
+#include <utility>   // std::move
+#include <memory>    // std::unique_ptr (if compute_large_data returns unique_ptr)
+
+std::vector<int> compute_large_data(); // forward declaration
+
+std::vector<int> data1 = compute_large_data();
+std::vector<int> data2 = std::move(data1); // data1 is left in valid but unspecified state
