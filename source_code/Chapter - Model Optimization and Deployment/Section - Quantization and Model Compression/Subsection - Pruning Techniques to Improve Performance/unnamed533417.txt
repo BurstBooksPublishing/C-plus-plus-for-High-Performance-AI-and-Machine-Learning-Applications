@@ -1,0 +1,6 @@
+#include <Eigen/Dense>
+#include <cmath>
+
+void pruneWeights(Eigen::MatrixXd& weights, double threshold) {
+    weights = (weights.array().abs() < threshold).select(0.0, weights);
+}
