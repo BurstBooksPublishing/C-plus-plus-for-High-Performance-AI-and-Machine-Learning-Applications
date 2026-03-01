@@ -1,0 +1,39 @@
+#include <vector>
+#include <numeric>
+#include <stdexcept>
+#include <mpi.h>
+
+constexpr int MAX_ITERATIONS = 1000;
+
+void train_neural_network(int rank, int size, const std::vector<float>& local_data) {
+    if (local_data.empty()) throw std::invalid_argument("Empty local data");
+
+    std::vector<float> weights(local_data.size(), 0.0f);
+    const float learning_rate = 0.01f;
+
+    for (int iter = 0; iter < MAX_ITERATIONS; ++iter) {
+        for (size_t j = 0; j < local_data.size(); ++j) {
+            weights[j] -= learning_rate * local_data[j];
+        }
+    }
+
+    // Average weights across all ranks
+    MPI_Allreduce(MPI_IN_PLACE, weights.data(), static_cast<int>(weights.size()),
+                  MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+    for (auto& w : weights) w /= size;
+}
+
+int main(int argc, char** argv) {
+    MPI_Init(&argc, &argv);
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    std::vector<float> local_data(1000, rank + 1); // stub data
+
+    train_neural_network(rank, size, local_data);
+
+    MPI_Finalize();
+    return 0;
+}
