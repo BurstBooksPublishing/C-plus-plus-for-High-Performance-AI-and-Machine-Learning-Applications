@@ -1,0 +1,10 @@
+#include <onnxruntime_cxx_api.h>   // Ort::SessionOptions
+#include <cuda_provider_factory.h> // OrtCUDAProviderOptions
+
+Ort::SessionOptions session_options;
+{
+    OrtCUDAProviderOptions cuda_opts{};
+    cuda_opts.device_id = 0;                 // use first GPU
+    cuda_opts.cudnn_conv_algo_search = OrtCudnnConvAlgoSearchHeuristic;
+    session_options.AppendExecutionProvider_CUDA(cuda_opts);
+}
