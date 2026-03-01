@@ -1,0 +1,11 @@
+#include <cstdint>
+#include <limits>
+
+float weight = 0.75f;
+// Scale to int8 range [-128,127] and clamp
+int8_t quantized_weight = static_cast<int8_t>(
+    weight * 127.0f > static_cast<float>(std::numeric_limits<int8_t>::max())
+        ? std::numeric_limits<int8_t>::max()
+        : (weight * 127.0f < static_cast<float>(std::numeric_limits<int8_t>::min())
+               ? std::numeric_limits<int8_t>::min()
+               : weight * 127.0f));
