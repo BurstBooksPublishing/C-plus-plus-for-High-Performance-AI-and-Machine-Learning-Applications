@@ -1,0 +1,35 @@
+#include <vector>
+#include <numeric>
+#include <cmath>
+#include <memory>
+
+struct Node {
+    int feature_index = -1;
+    double threshold = 0.0;
+    std::unique_ptr<Node> left;
+    std::unique_ptr<Node> right;
+    int value = 0; // Only valid for leaves
+};
+
+std::unique_ptr<Node> build_tree(const std::vector<std::vector<double>>& X,
+                                 const std::vector<int>& y,
+                                 int depth) {
+    if (depth <= 0 || y.size() <= 1) {
+        auto leaf = std::make_unique<Node>();
+        leaf->value = static_cast<int>(std::round(
+            std::accumulate(y.begin(), y.end(), 0.0) / y.size()));
+        return leaf;
+    }
+    // TODO: implement actual split selection
+    std::vector<std::vector<double>> left_X, right_X;
+    std::vector<int> left_y, right_y;
+    int best_feature = 0;
+    double best_threshold = 0.0;
+
+    auto node = std::make_unique<Node>();
+    node->feature_index = best_feature;
+    node->threshold = best_threshold;
+    node->left = build_tree(left_X, left_y, depth - 1);
+    node->right = build_tree(right_X, right_y, depth - 1);
+    return node;
+}
