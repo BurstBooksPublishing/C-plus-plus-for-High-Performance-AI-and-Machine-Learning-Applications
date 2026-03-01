@@ -1,0 +1,256 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <numeric>
+#include <cmath>
+#include <stdexcept>
+#include <chrono>
+#include <random>
+
+// ---------- compile-time constants ----------
+constexpr std::size_t kInputDim   = 784;
+constexpr std::size_t kHiddenDim  = 128;
+constexpr std::size_t kOutputDim  = 10;
+constexpr double      kLearningRate = 0.01;
+constexpr std::size_t kEpochs       = 10;
+constexpr std::size_t kBatchSize    = 64;
+
+// ---------- activation helpers ----------
+inline double relu(double x) { return std::max(0.0, x); }
+inline double relu_deriv(double x) { return x > 0.0 ? 1.0 : 0.0; }
+inline double softmax_stable(double x, double max_x) { return std::exp(x - max_x); }
+
+// ---------- simple tensor wrapper ----------
+template<typename T>
+class Tensor {
+public:
+    explicit Tensor(std::size_t rows, std::size_t cols)
+        : rows_(rows), cols_(cols), data_(rows * cols) {}
+
+    T& operator()(std::size_t r, std::size_t c) { return data_[r * cols_ + c]; }
+    const T& operator()(std::size_t r, std::size_t c) const { return data_[r * cols_ + c]; }
+
+    std::size_t rows() const { return rows_; }
+    std::size_t cols() const { return cols_; }
+
+    void fill_random(T min, T max) {
+        static std::mt19937 gen{std::random_device{}()};
+        std::uniform_real_distribution<T> dist(min, max);
+        std::generate(data_.begin(), data_.end(), [&] { return dist(gen); });
+    }
+
+private:
+    std::size_t rows_, cols_;
+    std::vector<T> data_;
+};
+
+// ---------- layer ----------
+class LinearLayer {
+public:
+    LinearLayer(std::size_t in, std::size_t out)
+        : weight_(in, out), bias_(1, out) {
+        // Xavier initialization
+        weight_.fill_random(-1.0 / std::sqrt(in), 1.0 / std::sqrt(in));
+        bias_.fill_random(0.0, 0.0);
+    }
+
+    const Tensor<double>& weight() const { return weight_; }
+    const Tensor<double>& bias()   const { return bias_; }
+
+    Tensor<double>& weight() { return weight_; }
+    Tensor<double>& bias()   { return bias_; }
+
+private:
+    Tensor<double> weight_;
+    Tensor<double> bias_;
+};
+
+// ---------- network ----------
+class Net {
+public:
+    Net()
+        : fc1_(kInputDim, kHiddenDim),
+          fc2_(kHiddenDim, kOutputDim) {}
+
+    // forward pass: returns log-softmax probabilities (batch x kOutputDim)
+    Tensor<double> forward(const Tensor<double>& x) {
+        // hidden = relu(x * W1 + b1)
+        auto h = affine(x, fc1_.weight(), fc1_.bias());
+        apply_elementwise(h, relu);
+
+        // out = h * W2 + b2
+        auto out = affine(h, fc2_.weight(), fc2_.bias());
+
+        // stable softmax per row
+        softmax(out);
+        return out;
+    }
+
+    // backward + update (simplified cross-entropy + log-softmax gradient)
+    void train_step(const Tensor<double>& x, const std::vector<std::size_t>& y) {
+        // forward
+        auto h = affine(x, fc1_.weight(), fc1_.bias());
+        apply_elementwise(h, relu);
+        auto logits = affine(h, fc2_.weight(), fc2_.bias());
+        softmax(logits);
+
+        const std::size_t batch = x.rows();
+        Tensor<double> grad_logits(batch, kOutputDim);
+        // d_loss/d_logits = prob - one_hot(y)
+        for (std::size_t i = 0; i < batch; ++i) {
+            for (std::size_t j = 0; j < kOutputDim; ++j)
+                grad_logits(i, j) = logits(i, j) - (y[i] == j ? 1.0 : 0.0);
+        }
+
+        // backprop to fc2
+        auto grad_h = affine_backward(grad_logits, h, fc2_.weight(), fc2_.bias(),
+                                      kLearningRate / batch);
+
+        // backprop relu
+        apply_elementwise(h, relu_deriv);
+        hadamard(grad_h, h);
+
+        // backprop to fc1
+        affine_backward(grad_h, x, fc1_.weight(), fc1_.bias(),
+                        kLearningRate / batch);
+    }
+
+    double accuracy(const Tensor<double>& x, const std::vector<std::size_t>& y) {
+        auto probs = forward(x);
+        std::size_t correct = 0;
+        for (std::size_t i = 0; i < x.rows(); ++i) {
+            std::size_t best = 0;
+            double best_p = probs(i, 0);
+            for (std::size_t j = 1; j < kOutputDim; ++j)
+                if (probs(i, j) > best_p) { best_p = probs(i, j); best = j; }
+            if (best == y[i]) ++correct;
+        }
+        return static_cast<double>(correct) / x.rows();
+    }
+
+private:
+    LinearLayer fc1_, fc2_;
+
+    // out = x * W + b
+    static Tensor<double> affine(const Tensor<double>& x,
+                                 const Tensor<double>& W,
+                                 const Tensor<double>& b) {
+        Tensor<double> out(x.rows(), W.cols());
+        for (std::size_t i = 0; i < x.rows(); ++i) {
+            for (std::size_t j = 0; j < W.cols(); ++j) {
+                double sum = b(0, j);
+                for (std::size_t k = 0; k < x.cols(); ++k)
+                    sum += x(i, k) * W(k, j);
+                out(i, j) = sum;
+            }
+        }
+        return out;
+    }
+
+    // compute grad_x and update W,b
+    static Tensor<double> affine_backward(const Tensor<double>& grad_out,
+                                          const Tensor<double>& x,
+                                          Tensor<double>& W,
+                                          Tensor<double>& b,
+                                          double lr) {
+        const std::size_t batch = x.rows();
+        Tensor<double> grad_x(batch, x.cols());
+
+        // grad_W = x^T * grad_out
+        for (std::size_t i = 0; i < W.rows(); ++i) {
+            for (std::size_t j = 0; j < W.cols(); ++j) {
+                double gw = 0.0;
+                for (std::size_t k = 0; k < batch; ++k)
+                    gw += x(k, i) * grad_out(k, j);
+                W(i, j) -= lr * gw;
+            }
+        }
+        // grad_b = sum(grad_out, axis=0)
+        for (std::size_t j = 0; j < b.cols(); ++j) {
+            double gb = 0.0;
+            for (std::size_t k = 0; k < batch; ++k) gb += grad_out(k, j);
+            b(0, j) -= lr * gb;
+        }
+        // grad_x = grad_out * W^T
+        for (std::size_t i = 0; i < batch; ++i) {
+            for (std::size_t j = 0; j < x.cols(); ++j) {
+                double gx = 0.0;
+                for (std::size_t k = 0; k < W.cols(); ++k)
+                    gx += grad_out(i, k) * W(j, k);
+                grad_x(i, j) = gx;
+            }
+        }
+        return grad_x;
+    }
+
+    static void apply_elementwise(Tensor<double>& t, double (*f)(double)) {
+        for (std::size_t i = 0; i < t.rows(); ++i)
+            for (std::size_t j = 0; j < t.cols(); ++j)
+                t(i, j) = f(t(i, j));
+    }
+
+    static void hadamard(Tensor<double>& a, const Tensor<double>& b) {
+        for (std::size_t i = 0; i < a.rows(); ++i)
+            for (std::size_t j = 0; j < a.cols(); ++j)
+                a(i, j) *= b(i, j);
+    }
+
+    static void softmax(Tensor<double>& t) {
+        for (std::size_t i = 0; i < t.rows(); ++i) {
+            double max_val = t(i, 0);
+            for (std::size_t j = 1; j < t.cols(); ++j)
+                if (t(i, j) > max_val) max_val = t(i, j);
+            double sum = 0.0;
+            for (std::size_t j = 0; j < t.cols(); ++j) {
+                t(i, j) = softmax_stable(t(i, j), max_val);
+                sum += t(i, j);
+            }
+            for (std::size_t j = 0; j < t.cols(); ++j) t(i, j) /= sum;
+        }
+    }
+};
+
+// ---------- dummy data loader ----------
+std::pair<Tensor<double>, std::vector<std::size_t>>
+load_dummy_mnist(std::size_t n) {
+    Tensor<double> images(n, kInputDim);
+    std::vector<std::size_t> labels(n);
+    static std::mt19937 gen{std::random_device{}()};
+    std::uniform_real_distribution<double> dist_pix(0.0, 1.0);
+    std::uniform_int_distribution<std::size_t> dist_label(0, kOutputDim - 1);
+    for (std::size_t i = 0; i < n; ++i) {
+        for (std::size_t j = 0; j < kInputDim; ++j)
+            images(i, j) = dist_pix(gen);
+        labels[i] = dist_label(gen);
+    }
+    return {images, labels};
+}
+
+// ---------- main ----------
+int main() {
+    Net net;
+    auto [train_x, train_y] = load_dummy_mnist(60000);
+    auto [test_x,  test_y]  = load_dummy_mnist(10000);
+
+    const std::size_t steps_per_epoch = train_x.rows() / kBatchSize;
+
+    for (std::size_t epoch = 0; epoch < kEpochs; ++epoch) {
+        for (std::size_t step = 0; step < steps_per_epoch; ++step) {
+            Tensor<double> batch(kBatchSize, kInputDim);
+            std::vector<std::size_t> labels(kBatchSize);
+            const std::size_t offset = step * kBatchSize;
+            for (std::size_t i = 0; i < kBatchSize; ++i) {
+                for (std::size_t j = 0; j < kInputDim; ++j)
+                    batch(i, j) = train_x(offset + i, j);
+                labels[i] = train_y[offset + i];
+            }
+            net.train_step(batch, labels);
+        }
+        double acc = net.accuracy(test_x, test_y);
+        std::cout << "Epoch " << epoch + 1 << " test accuracy "
+                  << static_cast<int>(acc * 100) << "%\n";
+    }
+    return 0;
+}
