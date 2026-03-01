@@ -1,0 +1,19 @@
+#include <type_traits>
+#include <utility>
+
+// --- example implementation --------------------------------------------------
+
+// Return type is explicitly stated so the caller knows the contract.
+std::vector<double> compute_complex_expression();
+
+// A strongly-typed alias prevents accidental misuse and keeps `auto` safe.
+using Velocity = double;
+Velocity some_function();
+
+// --- usage -------------------------------------------------------------------
+
+// `auto` is fine: the right-hand side already names the type.
+auto result = compute_complex_expression();
+
+// `auto` is *not* used: the alias makes the intent obvious.
+Velocity x = some_function();
