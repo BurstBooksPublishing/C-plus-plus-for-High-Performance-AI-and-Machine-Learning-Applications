@@ -1,0 +1,4 @@
+#include <vector>
+
+std::vector<int> data;   // concrete type required
+data.reserve(1000);      // single allocation for up to 1000 elements
