@@ -1,0 +1,4 @@
+#include <Eigen/Core>
+
+Eigen::Matrix3d W_fixed = Eigen::Matrix3d::Identity(); // 3×3 matrix, zero-initialised
+Eigen::Vector3d a_prev_fixed = Eigen::Vector3d::Zero(); // 3×1 vector, zero-initialised
