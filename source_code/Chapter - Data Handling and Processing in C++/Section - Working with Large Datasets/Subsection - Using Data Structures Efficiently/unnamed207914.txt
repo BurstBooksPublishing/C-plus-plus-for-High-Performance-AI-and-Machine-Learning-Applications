@@ -1,0 +1,4 @@
+#include <vector>
+
+std::vector<int> dataset;
+dataset.reserve(1'000'000); // prevent reallocations for expected element count
