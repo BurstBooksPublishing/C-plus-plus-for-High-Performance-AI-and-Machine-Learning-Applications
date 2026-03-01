@@ -1,0 +1,11 @@
+#include <vector>
+
+double l2_regularization(const std::vector<std::vector<double>>& weights, double lambda) {
+    double penalty = 0.0;
+    for (const auto& row : weights) {
+        for (double w : row) {
+            penalty += w * w;
+        }
+    }
+    return lambda * penalty;
+}
