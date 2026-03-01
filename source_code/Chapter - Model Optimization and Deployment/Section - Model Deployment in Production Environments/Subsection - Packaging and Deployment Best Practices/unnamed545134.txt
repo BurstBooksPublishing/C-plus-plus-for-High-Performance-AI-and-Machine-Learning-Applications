@@ -1,0 +1,20 @@
+#include <vector>
+#include <memory>
+#include <stdexcept>
+
+class MLModel {
+public:
+    using Input  = std::vector<double>;
+    using Output = std::vector<double>;
+
+    virtual ~MLModel() = default;
+
+    // Thread-safe inference; implementations must validate input size
+    virtual Output predict(const Input& input) const = 0;
+
+protected:
+    static void validateSize(const Input& in, std::size_t expected) {
+        if (in.size() != expected)
+            throw std::invalid_argument("Input size mismatch");
+    }
+};
