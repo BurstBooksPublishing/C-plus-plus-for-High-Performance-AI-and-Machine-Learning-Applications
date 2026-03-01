@@ -1,0 +1,22 @@
+#include <vector>
+#include <cstddef>
+
+void process(const int& value) noexcept;
+
+void processVector(const std::vector<int>& data) noexcept {
+    const std::size_t N = data.size();
+    std::size_t i = 0;
+
+    // Process 4 elements per iteration
+    for (; i + 3 < N; i += 4) {
+        process(data[i]);
+        process(data[i + 1]);
+        process(data[i + 2]);
+        process(data[i + 3]);
+    }
+
+    // Handle remaining elements
+    for (; i < N; ++i) {
+        process(data[i]);
+    }
+}
