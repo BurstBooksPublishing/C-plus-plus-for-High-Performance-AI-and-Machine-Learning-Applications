@@ -1,0 +1,66 @@
+#include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <vector>
+
+#include "tensorflow/lite/interpreter.h"
+#include "tensorflow/lite/kernels/register.h"
+#include "tensorflow/lite/model.h"
+#include "tensorflow/lite/optional_debug_tools.h"
+#include "tensorflow/lite/tools/optimize/quantization_wrapper_utils.h"
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <model.tflite>\n";
+        return EXIT_FAILURE;
+    }
+
+    // Load model
+    std::unique_ptr<tflite::FlatBufferModel> model =
+        tflite::FlatBufferModel::BuildFromFile(argv[1]);
+    if (!model) {
+        std::cerr << "Failed to load model: " << argv[1] << '\n';
+        return EXIT_FAILURE;
+    }
+
+    // Build interpreter
+    tflite::ops::builtin::BuiltinOpResolver resolver;
+    std::unique_ptr<tflite::Interpreter> interpreter;
+    if (tflite::InterpreterBuilder(*model, resolver)(&interpreter) != kTfLiteOk ||
+        !interpreter) {
+        std::cerr << "Failed to build interpreter\n";
+        return EXIT_FAILURE;
+    }
+
+    // Allocate tensors
+    if (interpreter->AllocateTensors() != kTfLiteOk) {
+        std::cerr << "Failed to allocate tensors\n";
+        return EXIT_FAILURE;
+    }
+
+    // Quantize weights to uint8
+    auto status = tflite::optimize::QuantizeModelAllOperators(
+        model->GetModel(), tflite::TensorType_UINT8,
+        tflite::TensorType_UINT8, false);
+    if (status != kTfLiteOk) {
+        std::cerr << "Quantization failed\n";
+        return EXIT_FAILURE;
+    }
+
+    // Populate input tensor with dummy data
+    float* input = interpreter->typed_input_tensor<float>(0);
+    const int input_size = interpreter->input_tensor(0)->bytes / sizeof(float);
+    for (int i = 0; i < input_size; ++i) input[i] = 0.0f;
+
+    // Run inference
+    if (interpreter->Invoke() != kTfLiteOk) {
+        std::cerr << "Inference failed\n";
+        return EXIT_FAILURE;
+    }
+
+    // Access output
+    float* output = interpreter->typed_output_tensor<float>(0);
+    (void)output;  // Placeholder for downstream processing
+
+    return EXIT_SUCCESS;
+}
