@@ -1,0 +1,13 @@
+#include <chrono>
+#include <cstdint>
+#include <spdlog/spdlog.h>
+
+void run_inference() {
+    const auto start = std::chrono::steady_clock::now();
+
+    // TODO: insert actual model inference here
+
+    const auto end = std::chrono::steady_clock::now();
+    const int64_t ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    spdlog::info("Inference completed in {} ms", ms);
+}
