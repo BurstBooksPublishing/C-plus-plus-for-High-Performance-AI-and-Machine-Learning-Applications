@@ -1,0 +1,14 @@
+#include <vector>
+#include <cassert>
+#include "Classifier.hpp"
+
+void stress_test_classifier() {
+    Classifier classifier;
+
+    // Build extreme input: 1000 elements at 1e9
+    std::vector<double> extreme_input(1000, 1e9);
+
+    // Predict and verify a valid (non-sentinel) result
+    const int prediction = classifier.predict(extreme_input);
+    assert(prediction != -1);
+}
