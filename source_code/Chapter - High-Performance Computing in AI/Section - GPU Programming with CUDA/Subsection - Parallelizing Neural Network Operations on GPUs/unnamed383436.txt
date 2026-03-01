@@ -1,0 +1,32 @@
+#include <cuda_runtime.h>
+
+__global__ void convolve2D(const float* __restrict__ input,
+                           const float* __restrict__ kernel,
+                           float* __restrict__ output,
+                           int inputWidth,
+                           int kernelWidth)
+{
+    const int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= inputWidth || y >= inputWidth) return;
+
+    const int halfK = kernelWidth / 2;
+    float sum = 0.0f;
+
+    #pragma unroll
+    for (int i = 0; i < kernelWidth; ++i) {
+        const int inputY = y + i - halfK;
+        if (inputY < 0 || inputY >= inputWidth) continue;
+
+        #pragma unroll
+        for (int j = 0; j < kernelWidth; ++j) {
+            const int inputX = x + j - halfK;
+            if (inputX >= 0 && inputX < inputWidth) {
+                sum += input[inputY * inputWidth + inputX] *
+                       kernel[i * kernelWidth + j];
+            }
+        }
+    }
+    output[y * inputWidth + x] = sum;
+}
