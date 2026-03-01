@@ -1,0 +1,25 @@
+#include <ray/api.h>
+#include <ray/rllib.h>
+#include <iostream>
+#include <string>
+
+int main() {
+    ray::Init();                                    // Start Ray cluster
+
+    rllib::config::PPOConfig cfg;                   // PPO hyper-parameters
+    cfg.env = "CartPole-v1";
+    cfg.num_workers = 2;
+    cfg.train_batch_size = 4000;
+
+    auto agent = rllib::PPOAgent(cfg);              // Build trainer
+
+    for (int i = 0; i != 10; ++i) {                 // Training loop
+        auto res = agent.train();
+        std::cout << "Iter " << i
+                  << "  mean reward: " << res["episode_reward_mean"].get<double>()
+                  << std::endl;
+    }
+
+    ray::Shutdown();                                // Clean shutdown
+    return 0;
+}
