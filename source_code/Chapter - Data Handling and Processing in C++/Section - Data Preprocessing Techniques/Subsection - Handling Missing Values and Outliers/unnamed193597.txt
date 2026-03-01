@@ -1,0 +1,35 @@
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <stdexcept>
+
+std::vector<double> detect_outliers(const std::vector<double>& values)
+{
+    if (values.empty()) return {};
+
+    std::vector<double> sorted = values;
+    std::sort(sorted.begin(), sorted.end());
+
+    auto quantile = [&](double p) -> double {          // 0 ≤ p ≤ 1
+        if (p <= 0.0) return sorted.front();
+        if (p >= 1.0) return sorted.back();
+        double idx = p * (sorted.size() - 1);
+        size_t lo = static_cast<size_t>(idx);
+        size_t hi = lo + 1;
+        double frac = idx - lo;
+        return sorted[lo] * (1 - frac) + sorted[hi] * frac;
+    };
+
+    double Q1 = quantile(0.25);
+    double Q3 = quantile(0.75);
+    double IQR = Q3 - Q1;
+    double lower = Q1 - 1.5 * IQR;
+    double upper = Q3 + 1.5 * IQR;
+
+    std::vector<double> outliers;
+    for (double v : sorted)
+        if (v < lower || v > upper)
+            outliers.push_back(v);
+
+    return outliers;
+}
