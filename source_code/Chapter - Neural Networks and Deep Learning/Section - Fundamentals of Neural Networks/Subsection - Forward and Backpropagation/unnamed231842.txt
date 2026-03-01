@@ -1,0 +1,21 @@
+#include <vector>
+#include <functional>
+
+std::vector<double> forward(const std::vector<double>& input,
+                            const std::vector<std::vector<double>>& weights,
+                            const std::vector<double>& biases,
+                            std::function<double(double)> activation)
+{
+    const size_t out_size = weights.size();
+    std::vector<double> output;
+    output.reserve(out_size);
+
+    for (size_t i = 0; i < out_size; ++i) {
+        double z = biases[i];
+        const std::vector<double>& w_row = weights[i];
+        for (size_t j = 0; j < input.size(); ++j)
+            z += w_row[j] * input[j];
+        output.push_back(activation(z));
+    }
+    return output;
+}
