@@ -1,0 +1,38 @@
+#include <tensorflow/cc/saved_model/loader.h>
+#include <tensorflow/cc/saved_model/tag_constants.h>
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/platform/logging.h>
+#include <tensorflow/core/protobuf/meta_graph.pb.h>
+#include <iostream>
+#include <memory>
+#include <string>
+
+namespace tf = tensorflow;
+
+// Load a SavedModel from disk; returns OK on success.
+tf::Status LoadModel(const std::string& export_dir,
+                     std::unique_ptr<tf::SavedModelBundleLite>* bundle) {
+    bundle->reset(new tf::SavedModelBundleLite);
+    tf::SessionOptions opts;
+    return tf::LoadSavedModel(opts, tf::RunOptions(), export_dir,
+                              {tf::kSavedModelTagServe}, bundle->get());
+}
+
+// Save a session and its MetaGraphDef to the given directory.
+tf::Status SaveModel(const std::string& export_dir,
+                     tf::SavedModelBundleLite* bundle) {
+    return tf::SaveModel(bundle->GetSession(), export_dir,
+                         bundle->meta_graph_def);
+}
+
+int main(int argc, char* argv[]) {
+    const std::string model_path   = (argc > 1) ? argv[1] : "path/to/saved_model";
+    const std::string save_path    = (argc > 2) ? argv[2] : "path/to/save_model";
+
+    std::unique_ptr<tf::SavedModelBundleLite> bundle;
+    TF_CHECK_OK(LoadModel(model_path, &bundle)) << "Failed to load model";
+    TF_CHECK_OK(SaveModel(save_path, bundle.get())) << "Failed to save model";
+
+    std::cout << "Model loaded and saved successfully.\n";
+    return 0;
+}
