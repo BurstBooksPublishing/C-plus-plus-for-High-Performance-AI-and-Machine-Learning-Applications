@@ -1,0 +1,136 @@
+#include <vector>
+#include <iostream>
+#include <random>
+#include <numeric>
+#include <stdexcept>
+
+class SimpleNeuralNetwork {
+public:
+    SimpleNeuralNetwork(std::size_t input_size,
+                        std::size_t hidden_size,
+                        std::size_t output_size,
+                        unsigned seed = std::random_device{}())
+        : input_size_(input_size),
+          hidden_size_(hidden_size),
+          output_size_(output_size),
+          rng_(seed) {
+        weights_input_hidden_.resize(input_size_ * hidden_size_);
+        weights_hidden_output_.resize(hidden_size_ * output_size_);
+        bias_hidden_.resize(hidden_size_);
+        bias_output_.resize(output_size_);
+
+        std::uniform_real_distribution<double> dist(-1.0, 1.0);
+        auto init = [&](double&) { return dist(rng_); };
+        std::for_each(weights_input_hidden_.begin(), weights_input_hidden_.end(), init);
+        std::for_each(weights_hidden_output_.begin(), weights_hidden_output_.end(), init);
+        std::for_each(bias_hidden_.begin(), bias_hidden_.end(), init);
+        std::for_each(bias_output_.begin(), bias_output_.end(), init);
+    }
+
+    std::vector<double> forward(const std::vector<double>& input) const {
+        if (input.size() != input_size_) throw std::invalid_argument("Input size mismatch");
+
+        std::vector<double> hidden(hidden_size_);
+        for (std::size_t j = 0; j < hidden_size_; ++j) {
+            double sum = bias_hidden_[j];
+            for (std::size_t i = 0; i < input_size_; ++i)
+                sum += input[i] * weights_input_hidden_[i * hidden_size_ + j];
+            hidden[j] = sigmoid(sum);
+        }
+
+        std::vector<double> output(output_size_);
+        for (std::size_t k = 0; k < output_size_; ++k) {
+            double sum = bias_output_[k];
+            for (std::size_t j = 0; j < hidden_size_; ++j)
+                sum += hidden[j] * weights_hidden_output_[j * output_size_ + k];
+            output[k] = sigmoid(sum);
+        }
+        return output;
+    }
+
+    void train(const std::vector<std::vector<double>>& inputs,
+               const std::vector<std::vector<double>>& targets,
+               std::size_t epochs,
+               double learning_rate) {
+        if (inputs.size() != targets.size()) throw std::invalid_argument("Mismatched inputs/targets");
+        for (std::size_t epoch = 0; epoch < epochs; ++epoch) {
+            for (std::size_t n = 0; n < inputs.size(); ++n) {
+                auto hidden = forward_to_hidden(inputs[n]);
+                auto output = forward_from_hidden(hidden);
+
+                std::vector<double> output_delta(output_size_);
+                for (std::size_t k = 0; k < output_size_; ++k) {
+                    double error = targets[n][k] - output[k];
+                    output_delta[k] = error * sigmoid_derivative(output[k]);
+                }
+
+                std::vector<double> hidden_delta(hidden_size_);
+                for (std::size_t j = 0; j < hidden_size_; ++j) {
+                    double error = 0.0;
+                    for (std::size_t k = 0; k < output_size_; ++k)
+                        error += output_delta[k] * weights_hidden_output_[j * output_size_ + k];
+                    hidden_delta[j] = error * sigmoid_derivative(hidden[j]);
+                }
+
+                for (std::size_t j = 0; j < hidden_size_; ++j)
+                    for (std::size_t k = 0; k < output_size_; ++k)
+                        weights_hidden_output_[j * output_size_ + k] +=
+                            learning_rate * output_delta[k] * hidden[j];
+
+                for (std::size_t i = 0; i < input_size_; ++i)
+                    for (std::size_t j = 0; j < hidden_size_; ++j)
+                        weights_input_hidden_[i * hidden_size_ + j] +=
+                            learning_rate * hidden_delta[j] * inputs[n][i];
+
+                for (std::size_t k = 0; k < output_size_; ++k)
+                    bias_output_[k] += learning_rate * output_delta[k];
+
+                for (std::size_t j = 0; j < hidden_size_; ++j)
+                    bias_hidden_[j] += learning_rate * hidden_delta[j];
+            }
+        }
+    }
+
+private:
+    std::size_t input_size_, hidden_size_, output_size_;
+    std::vector<double> weights_input_hidden_, weights_hidden_output_, bias_hidden_, bias_output_;
+    mutable std::mt19937 rng_;
+
+    static double sigmoid(double x) { return 1.0 / (1.0 + std::exp(-x)); }
+    static double sigmoid_derivative(double x) { return x * (1.0 - x); }
+
+    std::vector<double> forward_to_hidden(const std::vector<double>& input) const {
+        std::vector<double> hidden(hidden_size_);
+        for (std::size_t j = 0; j < hidden_size_; ++j) {
+            double sum = bias_hidden_[j];
+            for (std::size_t i = 0; i < input_size_; ++i)
+                sum += input[i] * weights_input_hidden_[i * hidden_size_ + j];
+            hidden[j] = sigmoid(sum);
+        }
+        return hidden;
+    }
+
+    std::vector<double> forward_from_hidden(const std::vector<double>& hidden) const {
+        std::vector<double> output(output_size_);
+        for (std::size_t k = 0; k < output_size_; ++k) {
+            double sum = bias_output_[k];
+            for (std::size_t j = 0; j < hidden_size_; ++j)
+                sum += hidden[j] * weights_hidden_output_[j * output_size_ + k];
+            output[k] = sigmoid(sum);
+        }
+        return output;
+    }
+};
+
+int main() {
+    std::vector<std::vector<double>> inputs = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+    std::vector<std::vector<double>> targets = {{0}, {1}, {1}, {0}};
+
+    SimpleNeuralNetwork nn(2, 2, 1);
+    nn.train(inputs, targets, 10000, 0.1);
+
+    for (const auto& in : inputs) {
+        auto out = nn.forward(in);
+        std::cout << in[0] << ' ' << in[1] << " -> " << out[0] << '\n';
+    }
+}
