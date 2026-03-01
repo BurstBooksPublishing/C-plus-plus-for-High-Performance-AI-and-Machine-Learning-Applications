@@ -1,0 +1,18 @@
+#include <mlpack/core.hpp>
+#include <mlpack/methods/linear_regression/linear_regression.hpp>
+
+int main()
+{
+    arma::mat data;               // features (rows = samples, cols = dims)
+    arma::rowvec responses;       // targets (length = samples)
+
+    mlpack::data::Load("data.csv", data, true);
+    mlpack::data::Load("responses.csv", responses, true);
+
+    mlpack::regression::LinearRegression lr(data, responses);
+
+    arma::rowvec predictions;
+    lr.Predict(data, predictions);
+
+    mlpack::data::Save("predictions.csv", predictions, true);
+}
