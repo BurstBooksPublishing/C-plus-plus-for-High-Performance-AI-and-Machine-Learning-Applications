@@ -1,0 +1,1 @@
+TEST(NeuralNetworkTest, Training) { NeuralNetwork network; std::vector data = { /* Test data */ }; EXPECT_NO_THROW(network.train(data)); }
