@@ -1,0 +1,44 @@
+#include <dlib/dnn.h>
+#include <dlib/rl.h>
+#include <iostream>
+#include <random>
+
+namespace rl = dlib::rl;
+
+int main() {
+    // Build a small MLP policy network: state-size → 64 → 32 → action-size
+    using net_type = dlib::loss_multiclass_log<
+                        dlib::fc<4,                           // 4 discrete actions
+                            dlib::relu<dlib::fc<32,
+                                dlib::relu<dlib::fc<64,
+                                    dlib::input<dlib::matrix<float>>
+                                >>
+                            >>
+                        >>;
+    net_type net;
+    dlib::momentum_sgd solver(0.01, 0.9);   // learning-rate = 0.01
+    rl::policy_gradient<net_type> policy(net, solver);
+
+    // Simple 4-state grid-world environment
+    rl::grid_world env(2, 2);
+
+    const int episodes = 1000;
+    const double gamma = 0.99;
+
+    std::mt19937 rng(std::random_device{}());
+
+    for (int ep = 0; ep < episodes; ++ep) {
+        env.reset();
+        policy.new_episode();
+
+        while (!env.is_terminal()) {
+            auto state = env.current_state();
+            unsigned long action = policy.select_action(state, rng);
+            double reward = env.step(action);
+            policy.record_reward(reward);
+        }
+        policy.update(gamma);   // finish episode, apply REINFORCE
+    }
+
+    return 0;
+}
