@@ -1,0 +1,5 @@
+#include <Eigen/Dense>
+
+Eigen::MatrixXd A = Eigen::MatrixXd::Random(100, 100);
+Eigen::MatrixXd B = Eigen::MatrixXd::Random(100, 100);
+Eigen::MatrixXd C = A * B;
