@@ -1,0 +1,19 @@
+#include <algorithm>
+#include <execution>
+#include <vector>
+
+std::vector<double> normalize(const std::vector<double>& data)
+{
+    if (data.empty()) return {};                       // guard against UB
+    const auto [min_it, max_it] = std::minmax_element(std::execution::par,
+                                                      data.begin(), data.end());
+    const double min_val = *min_it;
+    const double range = *max_it - min_val;
+    if (range == 0.0) return std::vector<double>(data.size(), 0.0);
+
+    std::vector<double> out(data.size());
+    std::transform(std::execution::par,
+                   data.begin(), data.end(), out.begin(),
+                   [=](double v) { return (v - min_val) / range; });
+    return out;
+}
