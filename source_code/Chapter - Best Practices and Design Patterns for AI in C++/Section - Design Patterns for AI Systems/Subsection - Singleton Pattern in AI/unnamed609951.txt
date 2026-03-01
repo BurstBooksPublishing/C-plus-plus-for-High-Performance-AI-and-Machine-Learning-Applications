@@ -1,0 +1,37 @@
+#include <unordered_map>
+#include <string>
+#include <mutex>
+#include <memory>
+
+class ConfigurationManager {
+private:
+    static std::unique_ptr<ConfigurationManager> instance;
+    static std::mutex mtx;
+    std::unordered_map<std::string, std::string> config;
+
+    ConfigurationManager() = default;
+
+public:
+    static ConfigurationManager& getInstance() {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (!instance) {
+            instance.reset(new ConfigurationManager());
+        }
+        return *instance;
+    }
+
+    void setConfig(const std::string& key, const std::string& value) {
+        config[key] = value;
+    }
+
+    std::string getConfig(const std::string& key) const {
+        auto it = config.find(key);
+        return it != config.end() ? it->second : "";
+    }
+
+    ConfigurationManager(const ConfigurationManager&) = delete;
+    ConfigurationManager& operator=(const ConfigurationManager&) = delete;
+};
+
+std::unique_ptr<ConfigurationManager> ConfigurationManager::instance = nullptr;
+std::mutex ConfigurationManager::mtx;
