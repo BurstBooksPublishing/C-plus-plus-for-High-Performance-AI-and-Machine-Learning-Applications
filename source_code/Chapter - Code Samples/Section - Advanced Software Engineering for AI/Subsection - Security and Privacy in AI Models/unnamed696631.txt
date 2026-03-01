@@ -1,0 +1,33 @@
+#include <algorithm>
+#include <iostream>
+#include <random>
+#include <vector>
+#include <omp.h>
+
+// Thread-local RNG engine to avoid data races
+thread_local std::mt19937 rng{std::random_device{}()};
+
+// Add Gaussian noise to a single vector in-place
+void augmentData(std::vector<double>& data, double sigma) {
+    std::normal_distribution<double> dist(0.0, sigma);
+    std::generate(data.begin(), data.end(),
+                  [&dist](double v) { return v + dist(rng); });
+}
+
+int main() {
+    std::vector<std::vector<double>> dataset = {
+        {1.0, 2.0, 3.0},
+        {4.0, 5.0, 6.0},
+        {7.0, 8.0, 9.0}
+    };
+    const double noiseSigma = 0.1;
+
+#pragma omp parallel for
+    for (size_t i = 0; i < dataset.size(); ++i)
+        augmentData(dataset[i], noiseSigma);
+
+    for (const auto& row : dataset) {
+        for (double v : row) std::cout << v << ' ';
+        std::cout << '\n';
+    }
+}
