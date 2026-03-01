@@ -1,0 +1,12 @@
+#include <Eigen/Dense>
+#include <iostream>
+
+int main() {
+    Eigen::Vector3d u(1, 2, 3);
+    Eigen::Vector3d v(4, 5, 6);
+
+    const double dot_product = u.dot(v);
+
+    std::cout << dot_product << std::endl;
+    return 0;
+}
