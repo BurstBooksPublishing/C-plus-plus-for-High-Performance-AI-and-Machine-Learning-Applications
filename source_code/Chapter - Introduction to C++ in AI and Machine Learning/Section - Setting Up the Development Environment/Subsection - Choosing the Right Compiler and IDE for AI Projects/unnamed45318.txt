@@ -1,0 +1,26 @@
+cmake
+cmake_minimum_required(VERSION 3.16)
+project(TensorFlowExample
+        VERSION 1.0.0
+        LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# ---- Find TensorFlow ----
+# Expects: TensorFlow_DIR or CMAKE_PREFIX_PATH pointing to a valid TensorFlow C++ install
+find_package(TensorFlow REQUIRED)
+
+# ---- Create executable ----
+add_executable(ai_project
+    main.cpp
+)
+
+# ---- Link & include ----
+target_link_libraries(ai_project PRIVATE TensorFlow::TensorFlow)
+
+# ---- Install ----
+include(GNUInstallDirs)
+install(TARGETS ai_project
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
