@@ -1,0 +1,75 @@
+#include <vector>
+#include <cmath>
+#include <random>
+#include <iostream>
+
+// Minimal dense layer: weights + bias + activation
+struct Layer {
+    std::vector<std::vector<double>> w;  // weights[i][j] = neuron i, input j
+    std::vector<double> b;               // bias[i] = neuron i
+    std::vector<double> z;               // pre-activation
+    std::vector<double> a;               // post-activation
+    double (*act)(double) = nullptr;     // activation function
+    double (*dact)(double) = nullptr;    // derivative
+};
+
+// ReLU and its derivative
+inline double relu(double x) { return x > 0 ? x : 0; }
+inline double drelu(double x) { return x > 0 ? 1 : 0; }
+
+// Global network state
+std::vector<Layer> net;
+std::mt19937 rng(std::random_device{}());
+
+// He initialization
+double he_init(std::size_t fan_in) {
+    std::normal_distribution<double> d(0.0, std::sqrt(2.0 / fan_in));
+    return d(rng);
+}
+
+// Build a 3-layer MLP: input -> 128 -> 64 -> output
+void build_network(std::size_t input_size, std::size_t output_size) {
+    auto make_layer = [&](std::size_t in, std::size_t out, auto act, auto dact) {
+        Layer l;
+        l.w.assign(out, std::vector<double>(in));
+        for (auto& row : l.w)
+            for (auto& v : row) v = he_init(in);
+        l.b.assign(out, 0.0);
+        l.z.assign(out, 0.0);
+        l.a.assign(out, 0.0);
+        l.act = act;
+        l.dact = dact;
+        return l;
+    };
+    net.clear();
+    net.push_back(make_layer(input_size, 128, relu, drelu));
+    net.push_back(make_layer(128, 64, relu, drelu));
+    net.push_back(make_layer(64, output_size, relu, drelu));
+}
+
+// Matrix-vector forward pass
+std::vector<double> forward_pass(const std::vector<double>& input) {
+    std::vector<double> x = input;
+    for (auto& L : net) {
+        std::size_t n = L.w.size();
+        for (std::size_t i = 0; i < n; ++i) {
+            double sum = L.b[i];
+            for (std::size_t j = 0; j < x.size(); ++j)
+                sum += L.w[i][j] * x[j];
+            L.z[i] = sum;
+            L.a[i] = L.act(sum);
+        }
+        x = L.a;
+    }
+    return x;  // final activations
+}
+
+// Example usage
+int main() {
+    build_network(784, 10);
+    std::vector<double> sample(784, 0.5);
+    std::vector<double> out = forward_pass(sample);
+    for (double v : out) std::cout << v << ' ';
+    std::cout << '\n';
+    return 0;
+}
