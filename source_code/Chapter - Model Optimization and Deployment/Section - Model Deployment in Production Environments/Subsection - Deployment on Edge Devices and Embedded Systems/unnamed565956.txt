@@ -1,0 +1,62 @@
+#include <cstddef>
+#include <algorithm>
+#include <numeric>
+#include <vector>
+
+namespace nn {
+
+// Spatial dimensions and channel count must match between input and kernel.
+// Output is assumed pre-allocated to the correct size.
+void depthwise_conv2d(const float* input,
+                      const std::size_t in_h,
+                      const std::size_t in_w,
+                      const std::size_t ch,
+                      const float* kernel,
+                      const std::size_t kh,
+                      const std::size_t kw,
+                      float* output)
+{
+    const std::size_t out_h = in_h - kh + 1;
+    const std::size_t out_w = in_w - kw + 1;
+
+    for (std::size_t c = 0; c < ch; ++c) {
+        const float* in_plane  = input  + c * (in_h  * in_w);
+        const float* k_plane   = kernel + c * (kh    * kw);
+        float*       out_plane = output + c * (out_h * out_w);
+
+        for (std::size_t y = 0; y < out_h; ++y) {
+            for (std::size_t x = 0; x < out_w; ++x) {
+                float sum = 0.0f;
+                for (std::size_t ky = 0; ky < kh; ++ky) {
+                    for (std::size_t kx = 0; kx < kw; ++kx) {
+                        sum += in_plane[(y + ky) * in_w + (x + kx)] *
+                               k_plane[ky * kw + kx];
+                    }
+                }
+                out_plane[y * out_w + x] = sum;
+            }
+        }
+    }
+}
+
+// 1x1 convolution: kernel shape is [out_ch][in_ch].
+void pointwise_conv2d(const float* input,
+                      const std::size_t in_ch,
+                      const std::size_t spatial_size,
+                      const float* kernel,
+                      const std::size_t out_ch,
+                      float* output)
+{
+    for (std::size_t oc = 0; oc < out_ch; ++oc) {
+        const float* k_row = kernel + oc * in_ch;
+        for (std::size_t s = 0; s < spatial_size; ++s) {
+            float sum = 0.0f;
+            for (std::size_t ic = 0; ic < in_ch; ++ic) {
+                sum += input[ic * spatial_size + s] * k_row[ic];
+            }
+            output[oc * spatial_size + s] = sum;
+        }
+    }
+}
+
+} // namespace nn
