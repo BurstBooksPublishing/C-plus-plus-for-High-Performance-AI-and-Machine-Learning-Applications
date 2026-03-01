@@ -1,0 +1,1 @@
+auto weights = std::vector(10, 0.0); constexpr int max_iterations = 1000;
