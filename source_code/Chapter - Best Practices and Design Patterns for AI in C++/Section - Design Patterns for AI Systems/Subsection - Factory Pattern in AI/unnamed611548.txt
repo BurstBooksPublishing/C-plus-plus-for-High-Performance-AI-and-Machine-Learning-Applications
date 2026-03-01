@@ -1,0 +1,32 @@
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+class Layer {
+public:
+    virtual ~Layer() = default;
+    virtual void forward() = 0;
+};
+
+class DenseLayer : public Layer {
+public:
+    void forward() override {
+        // Placeholder: y = x * W + b
+    }
+};
+
+class ConvLayer : public Layer {
+public:
+    void forward() override {
+        // Placeholder: y = conv(x, k) + b
+    }
+};
+
+class LayerFactory {
+public:
+    static std::unique_ptr<Layer> createLayer(const std::string& type) {
+        if (type == "dense") return std::make_unique<DenseLayer>();
+        if (type == "conv")  return std::make_unique<ConvLayer>();
+        throw std::invalid_argument("Unknown layer type: " + type);
+    }
+};
