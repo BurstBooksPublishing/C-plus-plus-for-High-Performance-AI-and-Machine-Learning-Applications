@@ -1,0 +1,35 @@
+#include <cmath>
+#include <iostream>
+#include <numeric>
+#include <vector>
+
+double mean(const std::vector<double>& v) {
+    return std::accumulate(v.begin(), v.end(), 0.0) / v.size();
+}
+
+double stddev(const std::vector<double>& v, double m) {
+    double acc = 0.0;
+    for (double x : v) acc += (x - m) * (x - m);
+    return std::sqrt(acc / v.size());
+}
+
+std::vector<double> remove_outliers(const std::vector<double>& v, double z_thresh = 3.0) {
+    if (v.empty()) return {};
+    const double m = mean(v);
+    const double s = stddev(v, m);
+    std::vector<double> out;
+    out.reserve(v.size());
+    for (double x : v)
+        if (std::abs((x - m) / s) <= z_thresh) out.push_back(x);
+    return out;
+}
+
+int main() {
+    std::vector<double> data{1.2, 2.3, 3.4, 4.5, 100.0, 5.6, 6.7, 7.8, 8.9, 9.0};
+    const auto filtered = remove_outliers(data);
+
+    for (double x : data) std::cout << x << ' ';
+    std::cout << "\n";
+    for (double x : filtered) std::cout << x << ' ';
+    std::cout << "\n";
+}
