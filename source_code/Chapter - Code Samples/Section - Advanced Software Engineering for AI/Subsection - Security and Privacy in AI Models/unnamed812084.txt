@@ -1,0 +1,74 @@
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <mutex>
+#include <random>
+#include <thread>
+#include <vector>
+
+using Weights = std::vector<double>;
+
+namespace {
+
+std::mt19937& rng() {
+    static std::mt19937 gen{std::random_device{}()};
+    return gen;
+}
+
+std::uniform_real_distribution<double>& dist() {
+    static std::uniform_real_distribution<double> d(-0.005, 0.005);
+    return d;
+}
+
+} // namespace
+
+void trainModel(Weights& w, std::size_t epochs = 1) {
+    std::lock_guard<std::mutex> g(weightsMutex());
+    for (std::size_t e = 0; e < epochs; ++e)
+        for (double& v : w) v += dist()(rng());
+}
+
+double evaluateModel(const Weights& w) {
+    std::lock_guard<std::mutex> g(weightsMutex());
+    double err = 0.0;
+    for (double v : w) err += std::abs(v - 1.0);
+    return err / w.size();
+}
+
+bool needsRetraining(double err, double threshold) {
+    return err > threshold;
+}
+
+std::mutex& weightsMutex() {
+    static std::mutex m;
+    return m;
+}
+
+void automatedRetrainingPipeline(Weights& w, double threshold,
+                                 std::chrono::minutes interval = std::chrono::minutes{10},
+                                 std::atomic<bool>* stop = nullptr) {
+    if (!stop) {
+        static std::atomic<bool> s{false};
+        stop = &s;
+    }
+    while (!stop->load(std::memory_order_relaxed)) {
+        double err = evaluateModel(w);
+        std::cout << "Current error: " << err << '\n';
+        if (needsRetraining(err, threshold)) {
+            std::cout << "Retraining...\n";
+            trainModel(w);
+        } else {
+            std::cout << "Model acceptable.\n";
+        }
+        std::this_thread::sleep_for(interval);
+    }
+}
+
+int main() {
+    Weights modelWeights(10, 1.0);
+    constexpr double errorThreshold = 0.1;
+    automatedRetrainingPipeline(modelWeights, errorThreshold);
+}
