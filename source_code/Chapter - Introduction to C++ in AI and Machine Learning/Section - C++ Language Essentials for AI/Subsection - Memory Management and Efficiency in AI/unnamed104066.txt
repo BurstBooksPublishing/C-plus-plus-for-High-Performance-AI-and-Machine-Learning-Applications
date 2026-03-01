@@ -1,0 +1,8 @@
+#include <memory>   // std::unique_ptr, std::make_unique
+#include <iostream> // std::cout
+
+int main() {
+    auto ptr = std::make_unique<int>(42); // dynamic single int with value 42
+    std::cout << *ptr << '\n';            // demonstrate ownership and access
+    return 0;                             // automatic cleanup on scope exit
+}
