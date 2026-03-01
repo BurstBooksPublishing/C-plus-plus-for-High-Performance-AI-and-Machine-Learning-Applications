@@ -1,0 +1,28 @@
+#include <stdexcept>
+
+class OnlineStatistics {
+public:
+    OnlineStatistics() noexcept : count_(0), mean_(0.0), M2_(0.0) {}
+
+    void update(double value) noexcept {
+        ++count_;
+        const double delta = value - mean_;
+        mean_ += delta / count_;
+        const double delta2 = value - mean_;
+        M2_ += delta * delta2;
+    }
+
+    [[nodiscard]] double mean() const noexcept { return mean_; }
+
+    [[nodiscard]] double variance() const {
+        if (count_ < 2) throw std::runtime_error("variance undefined for < 2 samples");
+        return M2_ / (count_ - 1);
+    }
+
+    [[nodiscard]] size_t count() const noexcept { return count_; }
+
+private:
+    size_t count_;
+    double mean_;
+    double M2_;
+};
