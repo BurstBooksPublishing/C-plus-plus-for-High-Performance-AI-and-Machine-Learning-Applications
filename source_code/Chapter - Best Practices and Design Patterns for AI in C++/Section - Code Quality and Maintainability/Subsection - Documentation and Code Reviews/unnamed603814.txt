@@ -1,0 +1,7 @@
+#include <cmath>
+#include <stdexcept>
+
+double binary_cross_entropy(double y, double p) {
+    if (p <= 0.0 || p >= 1.0) throw std::invalid_argument("p must be in (0,1)");
+    return -(y * std::log(p) + (1.0 - y) * std::log1p(-p));
+}
