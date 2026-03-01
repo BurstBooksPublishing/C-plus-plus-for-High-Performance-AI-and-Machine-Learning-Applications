@@ -1,0 +1,52 @@
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <algorithm>
+#include <mutex>
+
+class Observer {
+public:
+    virtual ~Observer() = default;
+    virtual void update(const std::string& message) = 0;
+};
+
+class Subject {
+public:
+    void attach(std::shared_ptr<Observer> observer) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        if (std::find(observers_.begin(), observers_.end(), observer) == observers_.end())
+            observers_.push_back(std::move(observer));
+    }
+
+    void detach(const std::shared_ptr<Observer>& observer) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        observers_.erase(
+            std::remove(observers_.begin(), observers_.end(), observer),
+            observers_.end());
+    }
+
+    void notify(const std::string& message) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        for (const auto& obs : observers_)
+            obs->update(message);
+    }
+
+private:
+    std::vector<std::shared_ptr<Observer>> observers_;
+    std::mutex mtx_;
+};
+
+class Logger : public Observer {
+public:
+    void update(const std::string& message) override {
+        std::cout << "Log: " << message << std::endl;
+    }
+};
+
+int main() {
+    Subject subject;
+    auto logger = std::make_shared<Logger>();
+    subject.attach(logger);
+    subject.notify("Training epoch completed.");
+    return 0;
+}
