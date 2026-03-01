@@ -1,0 +1,13 @@
+#include <array>
+
+constexpr std::size_t GRID_SIZE = 5;
+
+using Grid = std::array<std::array<int, GRID_SIZE>, GRID_SIZE>;
+
+constexpr Grid grid{{
+    {1, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 2}
+}};
