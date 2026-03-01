@@ -1,0 +1,21 @@
+#include <memory>
+#include "tensorflow/lite/model.h"
+#include "tensorflow/lite/interpreter.h"
+#include "tensorflow/lite/kernels/register.h"
+
+// Load model once; keep alive for the interpreter's lifetime
+auto model = tflite::FlatBufferModel::BuildFromFile("model.tflite");
+if (!model) return;                       // fail fast if model missing
+
+tflite::ops::builtin::BuiltinOpResolver resolver;
+std::unique_ptr<tflite::Interpreter> interpreter;
+tflite::InterpreterBuilder(*model, resolver)(&interpreter);
+
+interpreter->SetNumThreads(4);
+if (interpreter->AllocateTensors() != kTfLiteOk) return;
+
+float* input  = interpreter->typed_input_tensor<float>(0);
+float* output = interpreter->typed_output_tensor<float>(0);
+
+// Populate input here before inference
+interpreter->Invoke();
