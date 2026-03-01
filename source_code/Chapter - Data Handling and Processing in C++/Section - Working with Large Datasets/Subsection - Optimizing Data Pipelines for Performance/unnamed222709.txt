@@ -1,0 +1,10 @@
+#include <numeric>   // std::accumulate
+#include <vector>    // std::vector
+#include <stdexcept> // std::invalid_argument
+
+float compute_batch_mean(const std::vector<float>& batch) {
+    if (batch.empty()) throw std::invalid_argument("empty batch");
+
+    const float batch_sum = std::accumulate(batch.begin(), batch.end(), 0.0f);
+    return batch_sum / static_cast<float>(batch.size());
+}
