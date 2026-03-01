@@ -1,0 +1,22 @@
+#include <mpi.h>
+#include <cstdlib>   // std::exit
+#include <iostream>  // std::cerr
+
+int main(int argc, char* argv[]) {
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    if (provided < MPI_THREAD_FUNNELED) {
+        std::cerr << "MPI thread support insufficient\n";
+        std::exit(EXIT_FAILURE);
+    }
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    // Distributed computation placeholder
+    // (rank-specific work goes here)
+
+    MPI_Finalize();
+    return 0;
+}
