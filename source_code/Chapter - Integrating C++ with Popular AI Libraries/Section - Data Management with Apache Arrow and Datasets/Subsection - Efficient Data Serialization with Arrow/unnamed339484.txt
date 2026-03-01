@@ -1,0 +1,16 @@
+#include <arrow/table.h>
+#include <arrow/record_batch.h>
+#include <arrow/adapters/proto/record_batch_to_proto.h>
+#include "my_protobuf_message.pb.h"   // Generated header for MyProtobufMessage
+
+// Build a TableBatchReader and pull the first RecordBatch
+std::shared_ptr<arrow::TableBatchReader> reader;
+ARROW_RETURN_NOT_OK(arrow::TableBatchReader::Make(table, &reader));
+
+std::shared_ptr<arrow::RecordBatch> batch;
+ARROW_RETURN_NOT_OK(reader->ReadNext(&batch));
+if (!batch) return arrow::Status::Invalid("Table is empty");
+
+// Convert the RecordBatch to a protobuf message
+MyProtobufMessage message;
+ARROW_RETURN_NOT_OK(arrow::adapters::proto::RecordBatchToProto(*batch, &message));
