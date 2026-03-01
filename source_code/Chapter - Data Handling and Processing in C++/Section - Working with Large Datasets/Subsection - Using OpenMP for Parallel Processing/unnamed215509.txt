@@ -1,0 +1,17 @@
+#include <vector>
+#include <iostream>
+#include <numeric>
+#include <execution>
+
+int main() {
+    const std::size_t N = 1'000'000;
+    std::vector<double> data(N, 1.0);
+
+    // parallel transform scales every element by 2
+    std::transform(std::execution::par_unseq,
+                   data.begin(), data.end(), data.begin(),
+                   [](double v) { return v * 2.0; });
+
+    std::cout << "First element: " << data.front() << '\n';
+    return 0;
+}
