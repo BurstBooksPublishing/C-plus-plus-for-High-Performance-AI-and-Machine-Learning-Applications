@@ -1,0 +1,38 @@
+#include <opencv2/opencv.hpp>
+#include <opencv2/dnn.hpp>
+#include <iostream>
+#include <vector>
+
+int main(int argc, char** argv) {
+    const std::string model_path = (argc > 1) ? argv[1] : "model.onnx";
+    const std::string image_path = (argc > 2) ? argv[2] : "input_image.jpg";
+
+    cv::dnn::Net net = cv::dnn::readNetFromONNX(model_path);
+    if (net.empty()) {
+        std::cerr << "Failed to load model: " << model_path << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+    net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
+
+    cv::Mat image = cv::imread(image_path);
+    if (image.empty()) {
+        std::cerr << "Failed to load image: " << image_path << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    cv::Mat blob = cv::dnn::blobFromImage(image, 1.0, cv::Size(224, 224),
+                                          cv::Scalar(0, 0, 0), true, false);
+    net.setInput(blob);
+    cv::Mat prob = net.forward();
+
+    // Assume classification: find top class
+    cv::Point classIdPoint;
+    double confidence;
+    cv::minMaxLoc(prob.reshape(1, 1), nullptr, &confidence, nullptr, &classIdPoint);
+    std::cout << "Predicted class: " << classIdPoint.x
+              << " (confidence: " << confidence << ")" << std::endl;
+
+    return EXIT_SUCCESS;
+}
