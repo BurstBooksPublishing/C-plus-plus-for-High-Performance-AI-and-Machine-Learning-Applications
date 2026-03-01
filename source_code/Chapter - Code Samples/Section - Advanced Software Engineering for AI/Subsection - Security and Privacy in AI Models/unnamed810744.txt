@@ -1,0 +1,39 @@
+#include <cmath>
+#include <iostream>
+#include <numeric>
+#include <stdexcept>
+#include <vector>
+
+double mean(const std::vector<double>& v) {
+    if (v.empty()) throw std::invalid_argument("empty vector");
+    return std::accumulate(v.begin(), v.end(), 0.0) / v.size();
+}
+
+double stddev(const std::vector<double>& v, double m) {
+    if (v.empty()) throw std::invalid_argument("empty vector");
+    double sq = 0.0;
+    for (double x : v) sq += (x - m) * (x - m);
+    return std::sqrt(sq / v.size());
+}
+
+bool driftDetected(const std::vector<double>& train,
+                   const std::vector<double>& prod,
+                   double threshold) {
+    if (threshold <= 0) throw std::invalid_argument("threshold <= 0");
+
+    double mTrain = mean(train), mProd = mean(prod);
+    double sTrain = stddev(train, mTrain), sProd = stddev(prod, mProd);
+
+    return std::abs(mTrain - mProd) > threshold ||
+           std::abs(sTrain - sProd) > threshold;
+}
+
+int main() {
+    const std::vector<double> train{1.2, 1.5, 1.7, 1.9, 2.0};
+    const std::vector<double> prod{1.3, 1.6, 1.8, 2.1, 2.2};
+    const double threshold = 0.1;
+
+    std::cout << (driftDetected(train, prod, threshold)
+                  ? "Model drift detected!\n"
+                  : "No model drift detected.\n");
+}
