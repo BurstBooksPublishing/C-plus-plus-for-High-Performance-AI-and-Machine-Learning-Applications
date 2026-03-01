@@ -1,0 +1,14 @@
+#include <vector>
+#include <numeric>
+#include <iostream>
+#include <execution>
+
+int main() {
+    const std::size_t N = 1'000'000;
+    std::vector<double> data(N, 1.0);
+
+    // Parallel reduction with standard C++17 algorithms
+    double sum = std::reduce(std::execution::par_unseq, data.begin(), data.end(), 0.0);
+
+    std::cout << "Sum: " << sum << '\n';
+}
