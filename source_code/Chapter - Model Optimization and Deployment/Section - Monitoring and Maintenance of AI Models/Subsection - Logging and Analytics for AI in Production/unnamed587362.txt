@@ -1,0 +1,32 @@
+#include <chrono>
+#include <memory>
+#include <prometheus/counter.h>
+#include <prometheus/exposer.h>
+#include <prometheus/gauge.h>
+#include <prometheus/histogram.h>
+#include <prometheus/registry.h>
+
+int main() {
+    // Serve metrics on :8080/metrics
+    prometheus::Exposer exposer{"0.0.0.0:8080"};
+    auto registry = std::make_shared<prometheus::Registry>();
+    exposer.RegisterCollectable(registry);
+
+    // Track latency distribution and last value
+    auto& latency_family = prometheus::BuildHistogram()
+                               .Name("inference_latency_ms")
+                               .Help("AI model inference latency in milliseconds")
+                               .Buckets({1, 5, 10, 25, 50, 100, 250, 500})
+                               .Register(*registry);
+    auto& latency_hist = latency_family.Add({});
+
+    // Simulate one inference
+    auto start = std::chrono::steady_clock::now();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50)); // fake work
+    auto elapsed = std::chrono::duration<double, std::milli>(
+                       std::chrono::steady_clock::now() - start)
+                       .count();
+    latency_hist.Observe(elapsed);
+
+    return 0;
+}
