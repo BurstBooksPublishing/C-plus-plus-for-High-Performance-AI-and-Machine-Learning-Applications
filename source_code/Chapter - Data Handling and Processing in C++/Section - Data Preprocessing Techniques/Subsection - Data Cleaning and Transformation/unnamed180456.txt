@@ -1,0 +1,9 @@
+#include <vector>
+#include <optional>
+
+std::vector<std::optional<double>> data{1.2, std::nullopt, 3.4, std::nullopt};
+constexpr double default_value = 0.0;
+
+for (auto& value : data) {
+    if (!value) value = default_value;   // replace missing values
+}
