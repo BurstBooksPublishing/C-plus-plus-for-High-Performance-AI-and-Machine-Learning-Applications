@@ -1,0 +1,5 @@
+#include <memory>   // std::unique_ptr
+#include <cstddef>  // std::size_t
+
+// Correctly manage a dynamic array with explicit deleter
+std::unique_ptr<int[]> data = std::make_unique<int[]>(100);
