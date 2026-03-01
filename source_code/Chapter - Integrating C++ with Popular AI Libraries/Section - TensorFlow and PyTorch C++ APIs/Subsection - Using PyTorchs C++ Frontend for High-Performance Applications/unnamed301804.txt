@@ -1,0 +1,17 @@
+#include <torch/torch.h>
+#include <iostream>
+
+int main() {
+    // Ensure deterministic generation for reproducibility
+    torch::manual_seed(0);
+
+    // Create two 3×3 random tensors on the default device (CPU)
+    auto A = torch::randn({3, 3});
+    auto B = torch::randn({3, 3});
+
+    // Compute matrix product
+    auto C = torch::matmul(A, B);
+
+    std::cout << C << std::endl;
+    return 0;
+}
