@@ -1,0 +1,86 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+
+struct Rating {
+    int userId;
+    int itemId;
+    double score;
+};
+
+using UserVector = std::vector<double>;
+
+double cosineSimilarity(const UserVector& a, const UserVector& b) {
+    if (a.size() != b.size() || a.empty()) return 0.0;
+
+    double dot = 0.0, normA = 0.0, normB = 0.0;
+    for (size_t i = 0; i < a.size(); ++i) {
+        dot   += a[i] * b[i];
+        normA += a[i] * a[i];
+        normB += b[i] * b[i];
+    }
+    double denom = std::sqrt(normA) * std::sqrt(normB);
+    return denom < 1e-9 ? 0.0 : dot / denom;
+}
+
+double predictRating(const std::vector<Rating>& ratings,
+                     int targetUser,
+                     int targetItem,
+                     int k)
+{
+    // Map: user -> item -> score
+    std::unordered_map<int, std::unordered_map<int, double>> matrix;
+    for (const auto& r : ratings) matrix[r.userId][r.itemId] = r.score;
+
+    auto it = matrix.find(targetUser);
+    if (it == matrix.end()) return 0.0;
+    const auto& targetProfile = it->second;
+
+    std::vector<std::pair<double, double>> neighbors; // (similarity, score)
+
+    for (const auto& r : ratings) {
+        if (r.userId == targetUser || r.itemId != targetItem) continue;
+
+        const auto& otherProfile = matrix.at(r.userId);
+
+        UserVector commonA, commonB;
+        for (const auto& kv : targetProfile) {
+            if (otherProfile.count(kv.first)) {
+                commonA.push_back(kv.second);
+                commonB.push_back(otherProfile.at(kv.first));
+            }
+        }
+        if (commonA.empty()) continue;
+
+        double sim = cosineSimilarity(commonA, commonB);
+        if (sim > 1e-9) neighbors.emplace_back(sim, r.score);
+    }
+
+    if (neighbors.empty()) return 0.0;
+
+    std::partial_sort(neighbors.begin(),
+                      neighbors.begin() + std::min(k, static_cast<int>(neighbors.size())),
+                      neighbors.end(),
+                      [](auto& x, auto& y) { return x.first > y.first; });
+
+    double weightedSum = 0.0, weightSum = 0.0;
+    for (int i = 0; i < k && i < neighbors.size(); ++i) {
+        weightedSum += neighbors[i].first * neighbors[i].second;
+        weightSum   += neighbors[i].first;
+    }
+    return weightSum < 1e-9 ? 0.0 : weightedSum / weightSum;
+}
+
+int main() {
+    std::vector<Rating> ratings = {
+        {1, 101, 5.0}, {1, 102, 3.0}, {1, 103, 4.5},
+        {2, 101, 4.0}, {2, 102, 2.5}, {2, 103, 5.0},
+        {3, 101, 3.5}, {3, 102, 4.0}, {3, 103, 2.0}
+    };
+
+    int userId = 1, itemId = 102, k = 2;
+    std::cout << "Predicted rating: "
+              << predictRating(ratings, userId, itemId, k) << '\n';
+}
