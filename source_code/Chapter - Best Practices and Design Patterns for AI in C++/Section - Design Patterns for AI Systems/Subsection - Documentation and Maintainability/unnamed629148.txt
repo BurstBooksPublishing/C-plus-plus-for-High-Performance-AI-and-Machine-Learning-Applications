@@ -1,0 +1,19 @@
+#include <vector>
+#include <numeric>
+#include <cmath>
+
+std::vector<double> normalize(const std::vector<double>& data) {
+    if (data.empty()) return {};
+
+    double mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
+
+    double sq_sum = 0.0;
+    for (double v : data) sq_sum += (v - mean) * (v - mean);
+    double stddev = std::sqrt(sq_sum / data.size());
+    if (stddev == 0.0) return std::vector<double>(data.size(), 0.0);
+
+    std::vector<double> out;
+    out.reserve(data.size());
+    for (double v : data) out.push_back((v - mean) / stddev);
+    return out;
+}
