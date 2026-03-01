@@ -1,0 +1,44 @@
+#include 
+#include 
+
+// Function to perform matrix multiplication
+std::vector> matrixMultiply(const std::vector>& A, 
+                                             const std::vector>& B) {
+    // Get dimensions of matrices A and B
+    int rowsA = A.size();
+    int colsA = A[0].size();
+    int colsB = B[0].size();
+
+    // Initialize result matrix with zeros
+    std::vector> result(rowsA, std::vector(colsB, 0));
+
+    // Perform matrix multiplication
+    for (int i = 0; i < rowsA; ++i) {
+        for (int j = 0; j < colsB; ++j) {
+            for (int k = 0; k < colsA; ++k) {
+                result[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    // Define two matrices A and B
+    std::vector> A = {{1, 2, 3}, {4, 5, 6}};
+    std::vector> B = {{7, 8}, {9, 10}, {11, 12}};
+
+    // Perform matrix multiplication
+    std::vector> result = matrixMultiply(A, B);
+
+    // Print the result matrix
+    for (const auto& row : result) {
+        for (int val : row) {
+            std::cout << val << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    return 0;
+}
