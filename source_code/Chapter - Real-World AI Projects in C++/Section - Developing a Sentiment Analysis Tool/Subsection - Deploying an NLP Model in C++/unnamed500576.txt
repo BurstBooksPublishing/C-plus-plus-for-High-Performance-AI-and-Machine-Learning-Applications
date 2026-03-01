@@ -1,0 +1,8 @@
+#include <string>
+#include <stdexcept>
+
+std::string classify_sentiment(float score) {
+    if (score < 0.f || score > 1.f)
+        throw std::invalid_argument("score must be in [0,1]");
+    return score > 0.5f ? "Positive" : "Negative";
+}
