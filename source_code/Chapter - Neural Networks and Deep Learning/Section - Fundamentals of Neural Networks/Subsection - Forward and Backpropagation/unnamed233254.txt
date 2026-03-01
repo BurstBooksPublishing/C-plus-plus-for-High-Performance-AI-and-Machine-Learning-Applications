@@ -1,0 +1,24 @@
+#include <vector>
+#include <functional>
+
+void backprop(const std::vector<double>& input,
+              const std::vector<double>& output,
+              const std::vector<double>& target,
+              std::vector<std::vector<double>>& weights,
+              std::vector<double>& biases,
+              const std::function<double(double)>& activation_derivative,
+              double learning_rate)
+{
+    const size_t out_sz = output.size();
+    std::vector<double> delta(out_sz);
+    for (size_t i = 0; i < out_sz; ++i) {
+        delta[i] = (output[i] - target[i]) * activation_derivative(output[i]);
+    }
+
+    for (size_t i = 0; i < weights.size(); ++i) {
+        for (size_t j = 0; j < weights[i].size(); ++j) {
+            weights[i][j] -= learning_rate * delta[i] * input[j];
+        }
+        biases[i] -= learning_rate * delta[i];
+    }
+}
