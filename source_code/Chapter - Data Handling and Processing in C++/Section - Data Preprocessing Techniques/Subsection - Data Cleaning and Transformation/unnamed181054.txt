@@ -1,0 +1,25 @@
+#include <numeric>
+#include <cmath>
+#include <vector>
+#include <algorithm>
+
+std::vector<double> computeZScores(const std::vector<double>& data)
+{
+    if (data.empty()) return {};
+
+    const double mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
+
+    const double variance = std::accumulate(data.begin(), data.end(), 0.0,
+                                            [mean](double acc, double val) {
+                                                double d = val - mean;
+                                                return acc + d * d;
+                                            }) / data.size();
+
+    const double std_dev = std::sqrt(variance);
+    if (std_dev == 0.0) return std::vector<double>(data.size(), 0.0);
+
+    std::vector<double> z_scores(data.size());
+    std::transform(data.begin(), data.end(), z_scores.begin(),
+                   [mean, std_dev](double val) { return (val - mean) / std_dev; });
+    return z_scores;
+}
