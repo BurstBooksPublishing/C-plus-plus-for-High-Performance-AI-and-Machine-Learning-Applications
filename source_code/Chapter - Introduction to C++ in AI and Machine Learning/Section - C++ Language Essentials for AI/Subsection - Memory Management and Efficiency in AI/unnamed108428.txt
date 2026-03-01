@@ -1,0 +1,16 @@
+#include <vector>
+#include <algorithm>
+#include <execution>
+#include <numeric>
+#include <iostream>
+
+int main() {
+    std::vector<double> data(1'000'000, 1.0);
+
+    // Double every element in parallel
+    std::for_each(std::execution::par_unseq, data.begin(), data.end(), [](double& x) { x *= 2.0; });
+
+    // Verify correctness by summing the vector
+    double sum = std::reduce(std::execution::par_unseq, data.begin(), data.end(), 0.0);
+    std::cout << (sum == 2'000'000.0 ? "PASS" : "FAIL") << '\n';
+}
