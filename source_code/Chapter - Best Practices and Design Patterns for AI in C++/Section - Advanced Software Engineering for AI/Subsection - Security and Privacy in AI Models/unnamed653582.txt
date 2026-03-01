@@ -1,0 +1,24 @@
+#include <vector>
+#include <random>
+#include <stdexcept>
+
+std::vector<int> additiveSecretSharing(int secret, int num_parties) {
+    if (num_parties <= 0) throw std::invalid_argument("num_parties must be positive");
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist;
+
+    std::vector<int> shares(num_parties);
+    int sum = 0;
+
+    // Generate n-1 random shares
+    for (int i = 0; i < num_parties - 1; ++i) {
+        shares[i] = dist(gen);
+        sum += shares[i];
+    }
+
+    // Final share reconstructs the secret
+    shares.back() = secret - sum;
+    return shares;
+}
