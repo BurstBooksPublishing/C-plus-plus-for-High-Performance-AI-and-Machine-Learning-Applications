@@ -1,0 +1,11 @@
+#include <gtest/gtest.h>
+#include <vector>
+#include "ml_model.h"          // MLModel declaration
+#include <stdexcept>           // std::runtime_error (if predict can throw)
+
+TEST(MLModelTest, PredictDoesNotThrowOnValidInput)
+{
+    MLModel model;
+    const std::vector<double> input{1.0, 2.0, 3.0};
+    EXPECT_NO_THROW(model.predict(input));
+}
