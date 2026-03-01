@@ -1,0 +1,27 @@
+bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ---- configuration ----------------------------------------------------------
+LIBTORCH_VERSION="2.0.1"
+LIBTORCH_URL="https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-${LIBTORCH_VERSION}%2Bcpu.zip"
+INSTALL_PREFIX="/usr/local"
+TMP_DIR=$(mktemp -d)
+
+# ---- download and verify ----------------------------------------------------
+echo "Downloading LibTorch ${LIBTORCH_VERSION} …"
+curl -fsSL -o "${TMP_DIR}/libtorch.zip" "${LIBTORCH_URL}"
+
+# ---- extract ----------------------------------------------------------------
+echo "Extracting …"
+unzip -q "${TMP_DIR}/libtorch.zip" -d "${TMP_DIR}"
+
+# ---- install ----------------------------------------------------------------
+echo "Installing to ${INSTALL_PREFIX} …"
+sudo cp -a "${TMP_DIR}/libtorch/lib"     "${INSTALL_PREFIX}/"
+sudo cp -a "${TMP_DIR}/libtorch/include" "${INSTALL_PREFIX}/"
+sudo ldconfig   # refresh linker cache
+
+# ---- cleanup ----------------------------------------------------------------
+rm -rf "${TMP_DIR}"
+echo "LibTorch ${LIBTORCH_VERSION} installed successfully."
