@@ -1,0 +1,53 @@
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <memory>
+
+struct TreeNode {
+    int feature;
+    double threshold;
+    std::unique_ptr<TreeNode> left;
+    std::unique_ptr<TreeNode> right;
+    int label;                       // valid only when leaf (feature == -1)
+
+    TreeNode(int f, double t, std::unique_ptr<TreeNode> l, std::unique_ptr<TreeNode> r, int lbl = -1)
+        : feature(f), threshold(t), left(std::move(l)), right(std::move(r)), label(lbl) {}
+};
+
+double calculateGini(const std::map<int, int>& counts);
+std::pair<int, double> findBestSplit(const std::vector<std::vector<double>>& data,
+                                     const std::map<int, int>& labels);
+std::pair<std::map<int, int>, std::map<int, int>>
+splitDataset(const std::vector<std::vector<double>>& data,
+             const std::map<int, int>& labels,
+             int featureIndex,
+             double threshold);
+
+std::unique_ptr<TreeNode> buildTree(const std::vector<std::vector<double>>& data,
+                                    const std::map<int, int>& labels,
+                                    int depth,
+                                    int maxDepth) {
+    if (depth >= maxDepth || calculateGini(labels) == 0.0) {
+        // leaf: majority vote
+        int majorityLabel = std::max_element(labels.begin(), labels.end(),
+                                             [](const auto& a, const auto& b) {
+                                                 return a.second < b.second;
+                                             })->first;
+        return std::make_unique<TreeNode>(-1, 0.0, nullptr, nullptr, majorityLabel);
+    }
+
+    auto [featureIndex, threshold] = findBestSplit(data, labels);
+    auto [leftLabels, rightLabels] = splitDataset(data, labels, featureIndex, threshold);
+
+    if (leftLabels.empty() || rightLabels.empty()) {
+        int majorityLabel = std::max_element(labels.begin(), labels.end(),
+                                             [](const auto& a, const auto& b) {
+                                                 return a.second < b.second;
+                                             })->first;
+        return std::make_unique<TreeNode>(-1, 0.0, nullptr, nullptr, majorityLabel);
+    }
+
+    auto left = buildTree(data, leftLabels, depth + 1, maxDepth);
+    auto right = buildTree(data, rightLabels, depth + 1, maxDepth);
+    return std::make_unique<TreeNode>(featureIndex, threshold, std::move(left), std::move(right));
+}
