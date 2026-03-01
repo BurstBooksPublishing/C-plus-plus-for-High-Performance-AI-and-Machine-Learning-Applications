@@ -1,0 +1,24 @@
+#include <arrow/api.h>
+#include <arrow/array/builder_primitive.h>
+#include <arrow/array/builder_nested.h>
+#include <arrow/status.h>
+#include <memory>
+
+arrow::Status BuildNestedList() {
+    arrow::MemoryPool* pool = arrow::default_memory_pool();
+
+    // Inner list element builder: int64
+    auto int_builder = std::make_shared<arrow::Int64Builder>(pool);
+
+    // Outer list builder: list<int64>
+    arrow::ListBuilder list_builder(pool, int_builder);
+
+    // Append two inner lists: [] and [1, 2, 3]
+    ARROW_RETURN_NOT_OK(list_builder.Append());                 // start first inner list
+    ARROW_RETURN_NOT_OK(list_builder.Append());                 // start second inner list
+    ARROW_RETURN_NOT_OK(list_builder.AppendValues({1, 2, 3}));  // fill second inner list
+
+    std::shared_ptr<arrow::Array> nested_array;
+    ARROW_RETURN_NOT_OK(list_builder.Finish(&nested_array));
+    return arrow::Status::OK();
+}
