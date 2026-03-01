@@ -1,0 +1,29 @@
+#include <cuda_runtime.h>
+#include <NvInfer.h>
+#include <vector>
+#include <memory>
+
+class Logger : public nvinfer1::ILogger {
+    void log(Severity s, const char* m) noexcept override {
+        if (s <= Severity::kWARNING) std::cout << m << std::endl;
+    }
+} gLogger;
+
+struct InferDeleter {
+    template <typename T>
+    void operator()(T* obj) const { if (obj) obj->destroy(); }
+};
+
+using RuntimePtr  = std::unique_ptr<nvinfer1::IRuntime,    InferDeleter>;
+using EnginePtr   = std::unique_ptr<nvinfer1::ICudaEngine, InferDeleter>;
+using ContextPtr  = std::unique_ptr<nvinfer1::IExecutionContext, InferDeleter>;
+
+RuntimePtr runtime{nvinfer1::createInferRuntime(gLogger)};
+EnginePtr  engine{runtime->deserializeCudaEngine(engine_data.data(), engine_data.size())};
+ContextPtr context{engine->createExecutionContext()};
+
+std::vector<void*> buffers(2);
+cudaMalloc(&buffers[0], input_size);
+cudaMalloc(&buffers[1], output_size);
+
+context->enqueue(batch_size, buffers.data(), stream, nullptr);
