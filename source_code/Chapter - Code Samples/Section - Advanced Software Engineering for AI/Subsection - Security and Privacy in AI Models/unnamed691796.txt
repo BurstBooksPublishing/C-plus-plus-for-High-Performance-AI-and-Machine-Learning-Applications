@@ -1,0 +1,53 @@
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+class CSVParser {
+public:
+    explicit CSVParser(const std::string& filePath) : filePath_(filePath) {}
+
+    std::vector<std::vector<std::string>> parse() const {
+        std::ifstream file(filePath_);
+        if (!file.is_open()) {
+            throw std::runtime_error("Cannot open file: " + filePath_);
+        }
+
+        std::vector<std::vector<std::string>> data;
+        std::string line;
+
+        while (std::getline(file, line)) {
+            std::vector<std::string> row;
+            std::stringstream ss(line);
+            std::string cell;
+
+            while (std::getline(ss, cell, ',')) {
+                row.push_back(cell);
+            }
+            data.push_back(std::move(row));
+        }
+        return data;
+    }
+
+private:
+    std::string filePath_;
+};
+
+int main() {
+    try {
+        CSVParser parser("data.csv");
+        const auto data = parser.parse();
+
+        for (const auto& row : data) {
+            for (const auto& cell : row) {
+                std::cout << cell << ' ';
+            }
+            std::cout << '\n';
+        }
+    } catch (const std::exception& ex) {
+        std::cerr << ex.what() << '\n';
+        return 1;
+    }
+    return 0;
+}
