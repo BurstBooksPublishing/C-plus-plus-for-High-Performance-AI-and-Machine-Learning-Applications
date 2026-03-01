@@ -1,0 +1,23 @@
+#include <onnxruntime_cxx_api.h>   // Ort::Env, Ort::Session, Ort::SessionOptions
+#include <stdexcept>               // std::runtime_error
+
+// RAII wrapper: initializes ONNX Runtime at first use, tears it down at exit
+struct OrtGlobal {
+    OrtGlobal() {
+        Ort::InitApi();                 // required once per process
+    }
+} static const g_ort;
+
+// RAII wrapper: holds environment and session, throws on failure
+class OnnxModel {
+public:
+    explicit OnnxModel(const std::string& model_path)
+        : env_{ORT_LOGGING_LEVEL_WARNING, "Default"},
+          session_{env_, model_path.c_str(), Ort::SessionOptions{}} {}
+
+    Ort::Session& session() noexcept { return session_; }
+
+private:
+    Ort::Env env_;
+    Ort::Session session_;
+};
