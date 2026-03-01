@@ -1,0 +1,50 @@
+#include <Eigen/Dense>
+#include <iostream>
+#include <vector>
+#include <random>
+#include <stdexcept>
+
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
+
+class NeuralNetwork {
+public:
+    NeuralNetwork(std::vector<size_t> layers) : layers_(std::move(layers)) {
+        if (layers_.size() < 2) throw std::invalid_argument("Need >= 2 layers");
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<double> d(0.0, 1.0);
+        for (size_t i = 1; i < layers_.size(); ++i) {
+            weights_.emplace_back(MatrixXd::Random(layers_[i], layers_[i - 1]));
+            biases_.emplace_back(VectorXd::Random(layers_[i]));
+            weights_.back() *= std::sqrt(2.0 / layers_[i - 1]); // He init
+        }
+    }
+
+    VectorXd predict(const VectorXd& x) const {
+        VectorXd a = x;
+        for (size_t i = 0; i < weights_.size(); ++i) {
+            a = (weights_[i] * a + biases_[i]).unaryExpr([](double v) { return std::max(0.0, v); });
+        }
+        return softmax(a);
+    }
+
+private:
+    std::vector<size_t> layers_;
+    std::vector<MatrixXd> weights_;
+    std::vector<VectorXd> biases_;
+
+    static VectorXd softmax(const VectorXd& x) {
+        const double max = x.maxCoeff();
+        const VectorXd exp = (x.array() - max).exp();
+        return exp / exp.sum();
+    }
+};
+
+int main() {
+    NeuralNetwork net({784, 128, 10});
+    VectorXd sample = VectorXd::Random(784);
+    VectorXd prob = net.predict(sample);
+    std::cout << prob.transpose() << std::endl;
+    return 0;
+}
