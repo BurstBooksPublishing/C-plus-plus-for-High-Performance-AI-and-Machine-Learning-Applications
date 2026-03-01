@@ -1,0 +1,7 @@
+#include <cstdint>
+
+constexpr std::uint32_t MAX_ITERATIONS = 1000;
+
+for (std::uint32_t i = 0; i < MAX_ITERATIONS; ++i) {
+    // Iterative computation
+}
