@@ -1,0 +1,18 @@
+python
+import pyarrow as pa
+import numpy as np
+from typing import Any
+
+def arrow_to_numpy(arr: pa.Array) -> np.ndarray[Any, Any]:
+    """
+    Convert a PyArrow array to a NumPy array with zero-copy when possible.
+    Falls back to a copy if the Arrow buffer is not C-contiguous.
+    """
+    # Request zero-copy view; PyArrow will copy only if necessary
+    return arr.to_numpy(zero_copy_only=False)
+
+
+# Example usage
+if __name__ == "__main__":
+    arrow_array: pa.Array = pa.array([1, 2, 3])
+    numpy_array: np.ndarray[Any, Any] = arrow_to_numpy(arrow_array)
