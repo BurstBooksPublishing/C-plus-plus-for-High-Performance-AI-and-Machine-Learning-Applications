@@ -1,0 +1,11 @@
+#include <array>
+#include <random>
+
+constexpr std::size_t NUM_STATES  = 10;
+constexpr std::size_t NUM_ACTIONS = 4;
+constexpr double ALPHA   = 0.1;      // learning-rate
+constexpr double GAMMA   = 0.9;      // discount factor
+constexpr double EPSILON = 0.1;      // ε-greedy exploration
+
+// zero-initialised Q-table
+std::array<std::array<double, NUM_ACTIONS>, NUM_STATES> Q_table{};
