@@ -1,0 +1,15 @@
+#include <memory>
+#include <vector>
+
+// Minimal dummy model for demonstration
+class Model {
+public:
+    using Data = std::vector<double>;
+    void train(const Data& data) { /* training logic */ }
+};
+
+int main() {
+    auto model = std::make_unique<Model>();
+    Model::Data training_data{1.0, 2.0, 3.0};
+    model->train(training_data);
+}
