@@ -1,0 +1,56 @@
+#include <limits>
+#include <tuple>
+#include <vector>
+
+std::tuple<int, double, double>
+findBestSplit(const std::vector<std::vector<double>>& data,
+              const std::vector<int>& labels)
+{
+    if (data.empty() || data.size() != labels.size()) return {-1, 0.0, 0.0};
+
+    int    bestFeature = -1;
+    double bestThresh  = 0.0;
+    double bestGini    = std::numeric_limits<double>::max();
+
+    const size_t nSamples = labels.size();
+
+    for (size_t feat = 0; feat < data[0].size(); ++feat) {
+        for (size_t i = 0; i < nSamples; ++i) {
+            const double thresh = data[i][feat];
+
+            std::vector<int> left, right;
+            left.reserve(nSamples);
+            right.reserve(nSamples);
+
+            for (size_t j = 0; j < nSamples; ++j) {
+                (data[j][feat] <= thresh ? left : right).push_back(labels[j]);
+            }
+            if (left.empty() || right.empty()) continue;
+
+            const double giniLeft  = giniImpurity(left);
+            const double giniRight = giniImpurity(right);
+            const double weighted  = (left.size() * giniLeft + right.size() * giniRight) / nSamples;
+
+            if (weighted < bestGini) {
+                bestGini    = weighted;
+                bestFeature = static_cast<int>(feat);
+                bestThresh  = thresh;
+            }
+        }
+    }
+    return {bestFeature, bestThresh, bestGini};
+}
+
+static double giniImpurity(const std::vector<int>& counts)
+{
+    int total = 0;
+    for (int c : counts) total += c;
+    if (total == 0) return 0.0;
+
+    double sum = 0.0;
+    for (int c : counts) {
+        double p = static_cast<double>(c) / total;
+        sum += p * p;
+    }
+    return 1.0 - sum;
+}
