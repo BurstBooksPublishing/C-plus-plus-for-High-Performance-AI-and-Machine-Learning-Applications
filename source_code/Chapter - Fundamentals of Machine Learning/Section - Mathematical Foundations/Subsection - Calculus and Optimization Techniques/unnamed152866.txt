@@ -1,0 +1,29 @@
+#include <vector>
+#include <cmath>
+#include <stdexcept>
+
+constexpr std::size_t MAX_ITERATIONS = 1000;
+constexpr double LEARNING_RATE = 0.01;
+constexpr double TOLERANCE = 1e-6;
+
+double loss_function(const std::vector<double>& theta) {
+    double loss = 0.0;
+    for (double t : theta) loss += t * t;
+    return loss;
+}
+
+std::vector<double> gradient(const std::vector<double>& theta) {
+    std::vector<double> grad(theta.size());
+    for (std::size_t i = 0; i < theta.size(); ++i) grad[i] = 2.0 * theta[i];
+    return grad;
+}
+
+void gradient_descent(std::vector<double>& theta) {
+    if (theta.empty()) throw std::invalid_argument("empty parameter vector");
+
+    for (std::size_t iter = 0; iter < MAX_ITERATIONS; ++iter) {
+        std::vector<double> grad = gradient(theta);
+        for (std::size_t j = 0; j < theta.size(); ++j) theta[j] -= LEARNING_RATE * grad[j];
+        if (std::sqrt(loss_function(theta)) < TOLERANCE) break;
+    }
+}
