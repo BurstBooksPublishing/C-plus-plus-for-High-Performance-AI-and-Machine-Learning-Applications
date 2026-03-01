@@ -1,0 +1,26 @@
+#include <vector>
+#include <stdexcept>
+
+// Compressed-sparse row (CSR) representation of an undirected graph.
+// adjacency_list[offsets[u] … offsets[u+1]-1] contains neighbors of node u.
+class Graph {
+public:
+    Graph(const std::vector<int>& neighbors, const std::vector<int>& offsets)
+        : neighbors_(neighbors), offsets_(offsets) {
+        if (offsets_.empty() || offsets_.back() != static_cast<int>(neighbors_.size()))
+            throw std::invalid_argument("Last offset must equal neighbor count.");
+    }
+
+    // Returns a const view of neighbors for node u.
+    std::vector<int> neighbors(int u) const {
+        if (u < 0 || u + 1 >= static_cast<int>(offsets_.size()))
+            throw std::out_of_range("Node index out of range.");
+        return {neighbors_.begin() + offsets_[u], neighbors_.begin() + offsets_[u + 1]};
+    }
+
+    int node_count() const { return offsets_.size() - 1; }
+
+private:
+    std::vector<int> neighbors_;
+    std::vector<int> offsets_;
+};
