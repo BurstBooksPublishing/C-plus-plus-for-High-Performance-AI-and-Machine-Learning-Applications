@@ -1,0 +1,10 @@
+#include <Eigen/Dense>          // Eigen core + dense-matrix headers
+#include <iostream>              // std::cout (optional, for demo)
+
+int main() {
+    Eigen::VectorXd v(3);        // heap-allocated dynamic-size vector
+    v << 1, 2, 3;                // comma-initializer: sets v[0]=1, v[1]=2, v[2]=3
+
+    std::cout << v.transpose() << std::endl; // quick sanity check
+    return 0;
+}
