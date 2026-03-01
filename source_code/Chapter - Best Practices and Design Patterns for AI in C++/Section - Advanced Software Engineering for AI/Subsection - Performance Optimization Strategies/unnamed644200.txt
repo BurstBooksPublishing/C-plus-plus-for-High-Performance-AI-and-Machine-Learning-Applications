@@ -1,0 +1,21 @@
+bash
+#!/usr/bin/env bash
+# Run Valgrind’s Callgrind profiler on the compiled executable.
+# Usage: ./profile.sh [./program] [args...]
+
+set -euo pipefail
+
+EXE=${1:-./program}
+shift || true
+
+# Create output directory for profiling data
+OUT_DIR="callgrind.out"
+mkdir -p "$OUT_DIR"
+
+# Unique output file per run
+OUT_FILE="$OUT_DIR/$(date '+%Y%m%d_%H%M%S').%p"
+
+exec valgrind \
+     --tool=callgrind \
+     --callgrind-out-file="$OUT_FILE" \
+     "$EXE" "$@"
