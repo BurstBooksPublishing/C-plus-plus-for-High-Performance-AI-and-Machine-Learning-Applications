@@ -1,0 +1,27 @@
+#include <cmath>
+#include <vector>
+
+// External configuration (must be supplied by caller or compilation unit)
+extern double learning_rate;
+extern double tolerance;
+extern int    max_iterations;
+
+// External functions (must be supplied by compilation unit)
+std::vector<double> gradient(const std::vector<double>&);
+double              loss_function(const std::vector<double>&);
+
+void gradient_descent_with_momentum(std::vector<double>& theta) {
+    std::vector<double> velocity(theta.size(), 0.0);
+    constexpr double momentum = 0.9;
+
+    for (int i = 0; i < max_iterations; ++i) {
+        const auto grad = gradient(theta);
+
+        for (size_t j = 0; j < theta.size(); ++j) {
+            velocity[j] = momentum * velocity[j] + learning_rate * grad[j];
+            theta[j]   -= velocity[j];
+        }
+
+        if (std::sqrt(loss_function(theta)) < tolerance) break;
+    }
+}
