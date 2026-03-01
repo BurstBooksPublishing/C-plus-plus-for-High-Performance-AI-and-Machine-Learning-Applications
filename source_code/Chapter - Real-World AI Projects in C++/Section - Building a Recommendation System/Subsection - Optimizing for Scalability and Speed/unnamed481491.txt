@@ -1,0 +1,8 @@
+#include <vector>
+#include <cstdint>
+
+void update_recommendations(const std::vector<std::int64_t>& user_ids) {
+    for (std::int64_t user_id : user_ids) {
+        // TODO: implement per-user recommendation update
+    }
+}
