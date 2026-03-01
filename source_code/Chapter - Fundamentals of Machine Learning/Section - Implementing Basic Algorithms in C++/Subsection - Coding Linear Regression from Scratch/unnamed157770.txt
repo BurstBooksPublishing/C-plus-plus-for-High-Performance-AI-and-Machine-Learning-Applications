@@ -1,0 +1,13 @@
+#include <vector>
+#include <stdexcept>
+
+double hypothesis(const std::vector<double>& theta, const std::vector<double>& x) {
+    if (theta.empty() || theta.size() - 1 != x.size())
+        throw std::invalid_argument("theta and x sizes mismatch");
+
+    double result = theta[0];
+    for (size_t i = 1; i < theta.size(); ++i) {
+        result += theta[i] * x[i - 1];
+    }
+    return result;
+}
