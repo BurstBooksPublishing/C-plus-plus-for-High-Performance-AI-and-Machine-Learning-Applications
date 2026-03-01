@@ -1,0 +1,23 @@
+#include <vector>
+#include <cmath>   // std::isnan
+#include <limits>  // std::numeric_limits
+
+std::vector<double> data{1.0, 2.0, std::numeric_limits<double>::quiet_NaN(), 4.0, 5.0};
+
+double sum = 0.0;
+std::size_t count = 0;
+
+for (double x : data) {
+    if (!std::isnan(x)) {
+        sum += x;
+        ++count;
+    }
+}
+
+const double mean = (count > 0) ? sum / count : 0.0;
+
+for (double& x : data) {
+    if (std::isnan(x)) {
+        x = mean;
+    }
+}
