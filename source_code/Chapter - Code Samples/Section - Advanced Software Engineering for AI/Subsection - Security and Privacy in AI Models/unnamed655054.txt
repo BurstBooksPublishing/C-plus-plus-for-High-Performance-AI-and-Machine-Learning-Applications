@@ -1,0 +1,46 @@
+// Example: Matrix Multiplication in C++ vs Python
+// Demonstrates the performance benefits of C++ over Python
+
+#include 
+#include 
+#include 
+
+// Function to perform matrix multiplication in C++
+std::vector> matrixMultiply(const std::vector>& A, 
+                                                const std::vector>& B) {
+    int rowsA = A.size();
+    int colsA = A[0].size();
+    int colsB = B[0].size();
+    std::vector> result(rowsA, std::vector(colsB, 0.0));
+
+    for (int i = 0; i < rowsA; ++i) {
+        for (int j = 0; j < colsB; ++j) {
+            for (int k = 0; k < colsA; ++k) {
+                result[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+    return result;
+}
+
+int main() {
+    // Define two 1000x1000 matrices
+    std::vector> A(1000, std::vector(1000, 1.0));
+    std::vector> B(1000, std::vector(1000, 2.0));
+
+    // Start timing
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Perform matrix multiplication
+    std::vector> result = matrixMultiply(A, B);
+
+    // End timing
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration elapsed = end - start;
+
+    // Output the time taken
+    std::cout << "Time taken for matrix multiplication in C++: " 
+              << elapsed.count() << " seconds" << std::endl;
+
+    return 0;
+}
