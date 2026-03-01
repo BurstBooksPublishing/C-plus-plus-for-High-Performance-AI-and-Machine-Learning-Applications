@@ -1,0 +1,23 @@
+#include <spdlog/spdlog.h>
+#include <memory>
+#include <stdexcept>
+
+int main() {
+    try {
+        spdlog::set_level(spdlog::level::info);
+        spdlog::info("Starting AI model inference...");
+
+        // Model inference placeholder
+        bool anomaly = true;   // stub
+        bool valid   = false;  // stub
+
+        if (anomaly) spdlog::warn("Potential anomaly detected in input data.");
+        if (!valid)  throw std::invalid_argument("Inference failed due to invalid input.");
+
+        spdlog::info("Inference completed successfully.");
+    } catch (const std::exception& ex) {
+        spdlog::error("{}", ex.what());
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
