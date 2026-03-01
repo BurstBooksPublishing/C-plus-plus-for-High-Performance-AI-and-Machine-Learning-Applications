@@ -1,0 +1,17 @@
+#include <cstddef>   // size_t
+#include <algorithm> // std::transform
+#include <numeric>   // std::multiplies
+
+// Element-wise multiplication: result[i] = a[i] * b[i]
+// Accepts any iterator/random-access range; caller must ensure non-overlapping output.
+template <class InIt1, class InIt2, class OutIt>
+void elementwise_multiply(InIt1 first1, InIt1 last1,
+                          InIt2 first2, OutIt result) {
+    std::transform(first1, last1, first2, result, std::multiplies<>{});
+}
+
+// Convenience overload for raw C arrays
+inline void elementwise_multiply(const float* a, const float* b,
+                                 float* result, std::size_t size) {
+    elementwise_multiply(a, a + size, b, result);
+}
