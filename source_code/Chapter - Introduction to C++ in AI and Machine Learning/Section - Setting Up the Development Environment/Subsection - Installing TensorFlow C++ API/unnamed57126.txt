@@ -1,0 +1,34 @@
+#include <tensorflow/c/c_api.h>   // C API is the only stable ABI
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <stdexcept>
+
+// RAII wrapper that guarantees TF_Graph deletion even on exception
+struct TFGraphDeleter { void operator()(TF_Graph* p) const { if (p) TF_DeleteGraph(p); } };
+using TFGraphPtr = std::unique_ptr<TF_Graph, TFGraphDeleter>;
+
+// Same for TF_Session
+struct TFSessionDeleter { void operator()(TF_Session* p) const { if (p) TF_CloseSession(p, nullptr); } };
+using TFSessionPtr = std::unique_ptr<TF_Session, TFSessionDeleter>;
+
+// Minimal error-checking helper
+inline void check(const TF_Status* s) {
+    if (TF_GetCode(s) != TF_OK)
+        throw std::runtime_error(TF_Message(s));
+}
+
+int main() {
+    TF_Status* status = TF_NewStatus();
+    TFGraphPtr graph(TF_NewGraph());
+    TF_SessionOptions* opts = TF_NewSessionOptions();
+
+    TFSessionPtr session(TF_NewSession(graph.get(), opts, status));
+    check(status);
+
+    std::cout << "TensorFlow C API version: " << TF_Version() << std::endl;
+
+    TF_DeleteSessionOptions(opts);
+    TF_DeleteStatus(status);
+    return 0;
+}
