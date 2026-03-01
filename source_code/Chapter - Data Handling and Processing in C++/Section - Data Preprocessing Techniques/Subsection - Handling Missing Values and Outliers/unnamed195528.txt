@@ -1,0 +1,7 @@
+#include <vector>
+#include <algorithm>
+
+void clamp(std::vector<double>& data, double lower_bound, double upper_bound) {
+    std::transform(data.begin(), data.end(), data.begin(),
+                   [=](double x) { return std::clamp(x, lower_bound, upper_bound); });
+}
