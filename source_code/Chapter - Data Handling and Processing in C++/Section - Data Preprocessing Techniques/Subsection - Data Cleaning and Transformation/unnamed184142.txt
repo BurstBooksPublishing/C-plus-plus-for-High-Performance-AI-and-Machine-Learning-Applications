@@ -1,0 +1,21 @@
+#include <vector>
+#include <unordered_map>
+#include <stdexcept>
+
+std::vector<std::vector<int>>
+one_hot_encode(const std::vector<std::string>& categories,
+               const std::unordered_map<std::string, int>& category_to_index)
+{
+    const size_t n_samples = categories.size();
+    const size_t n_classes = category_to_index.size();
+
+    std::vector<std::vector<int>> encoded(n_samples, std::vector<int>(n_classes, 0));
+
+    for (size_t i = 0; i < n_samples; ++i) {
+        auto it = category_to_index.find(categories[i]);
+        if (it == category_to_index.end())
+            throw std::invalid_argument("Unknown category: " + categories[i]);
+        encoded[i][it->second] = 1;
+    }
+    return encoded;
+}
