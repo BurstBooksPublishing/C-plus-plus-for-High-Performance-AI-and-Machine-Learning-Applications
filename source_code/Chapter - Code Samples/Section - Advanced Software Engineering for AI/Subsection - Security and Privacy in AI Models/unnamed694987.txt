@@ -1,0 +1,44 @@
+#include <vector>
+#include <thread>
+#include <mutex>
+#include <iostream>
+#include <algorithm>
+#include <numeric>
+#include <future>
+
+std::vector<int> preprocessedData;
+std::mutex dataMutex;
+
+void preprocessChunk(const std::vector<int>& dataChunk) {
+    std::vector<int> processedChunk(dataChunk.size());
+    std::transform(dataChunk.begin(), dataChunk.end(), processedChunk.begin(),
+                   [](int v) { return v * v; });
+
+    std::lock_guard<std::mutex> lock(dataMutex);
+    preprocessedData.insert(preprocessedData.end(),
+                            std::make_move_iterator(processedChunk.begin()),
+                            std::make_move_iterator(processedChunk.end()));
+}
+
+int main() {
+    const std::vector<int> dataset(10'000'000);
+    std::iota(dataset.begin(), dataset.end(), 1);
+
+    const unsigned numThreads = std::thread::hardware_concurrency();
+    std::vector<std::future<void>> futures;
+    futures.reserve(numThreads);
+
+    const size_t chunkSize = dataset.size() / numThreads;
+    for (unsigned i = 0; i < numThreads; ++i) {
+        size_t start = i * chunkSize;
+        size_t end = (i == numThreads - 1) ? dataset.size() : start + chunkSize;
+        futures.emplace_back(std::async(std::launch::async, preprocessChunk,
+                                        std::vector<int>(dataset.begin() + start,
+                                                         dataset.begin() + end)));
+    }
+
+    for (auto& f : futures) f.wait();
+
+    std::cout << "Preprocessed " << preprocessedData.size() << " values\n";
+    return 0;
+}
