@@ -1,0 +1,31 @@
+#include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "tensorflow/cc/saved_model/loader.h"
+#include "tensorflow/cc/saved_model/tag_constants.h"
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/public/session.h"
+
+int main() {
+    const std::string export_dir = "/path/to/model";  // update to real path
+    const std::vector<std::string> tags = {tensorflow::kSavedModelTagServe};
+
+    tensorflow::SessionOptions session_opts;
+    tensorflow::RunOptions run_opts;
+
+    auto bundle = std::make_unique<tensorflow::SavedModelBundle>();
+
+    const tensorflow::Status load_status =
+        tensorflow::LoadSavedModel(session_opts, run_opts, export_dir, tags, bundle.get());
+
+    if (!load_status.ok()) {
+        std::cerr << "Error loading model: " << load_status.ToString() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // bundle->session and bundle->meta_graph_def are ready for inference
+    return EXIT_SUCCESS;
+}
