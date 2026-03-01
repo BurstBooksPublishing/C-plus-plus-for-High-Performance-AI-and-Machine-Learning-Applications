@@ -1,0 +1,13 @@
+#include <algorithm>
+#include <execution>
+#include <vector>
+
+// Assume normalize is defined elsewhere, e.g.:
+// float normalize(float x) { return std::clamp(x, 0.0f, 1.0f); }
+
+void normalizeVector(std::vector<float>& data)
+{
+    std::for_each(std::execution::par_unseq,          // fastest legal policy
+                  data.begin(), data.end(),
+                  [](float& v) { v = normalize(v); });
+}
