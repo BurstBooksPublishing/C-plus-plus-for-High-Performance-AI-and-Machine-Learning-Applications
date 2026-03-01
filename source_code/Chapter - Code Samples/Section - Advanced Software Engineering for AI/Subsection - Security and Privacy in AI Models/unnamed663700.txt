@@ -1,0 +1,17 @@
+#include <algorithm>
+#include <iostream>
+#include <map>
+#include <string>
+#include <vector>
+
+int main() {
+    std::vector<double> features{0.1, 0.4, 0.7, 0.2, 0.5};
+    std::map<std::string, int> classCounts{{"cat", 10}, {"dog", 15}, {"bird", 7}};
+
+    std::sort(features.begin(), features.end());
+
+    std::cout << "Sorted Features: ";
+    for (double v : features) std::cout << v << ' ';
+    std::cout << "\nClass Counts:\n";
+    for (const auto& [label, count] : classCounts) std::cout << label << ": " << count << '\n';
+}
