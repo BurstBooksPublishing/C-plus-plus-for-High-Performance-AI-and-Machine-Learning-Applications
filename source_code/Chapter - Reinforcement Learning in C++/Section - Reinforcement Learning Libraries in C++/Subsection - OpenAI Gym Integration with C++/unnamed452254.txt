@@ -1,0 +1,42 @@
+#include <pybind11/embed.h>   // everything needed for embedding
+#include <pybind11/stl.h>     // automatic std::vector conversion
+#include <pybind11/numpy.h>   // numpy array support
+#include <iostream>
+#include <stdexcept>
+
+namespace py = pybind11;
+
+int main() {
+    py::scoped_interpreter guard{};          // RAII Python interpreter
+
+    try {
+        py::module gym = py::module::import("gym");
+
+        py::object env = gym.attr("make")("CartPole-v1");
+        py::object obs = env.attr("reset")(); // initial observation
+
+        for (int step = 0; step < 1000; ++step) {
+            py::int_ action = env.attr("action_space").attr("sample")();
+            py::tuple step_ret = env.attr("step")(action); // obs, reward, done, info
+
+            auto obs_array   = step_ret[0].cast<py::array_t<float>>();
+            float reward     = step_ret[1].cast<float>();
+            bool done        = step_ret[2].cast<bool>();
+
+            std::cout << "Step " << step
+                      << "  Obs[0]: " << *obs_array.data()
+                      << "  Reward: " << reward
+                      << "  Done: " << std::boolalpha << done << '\n';
+
+            if (done) {
+                env.attr("reset")();
+            } else {
+                obs = step_ret[0];
+            }
+        }
+    } catch (const py::error_already_set& e) {
+        std::cerr << "Python error: " << e.what() << '\n';
+        return 1;
+    }
+    return 0;
+}
