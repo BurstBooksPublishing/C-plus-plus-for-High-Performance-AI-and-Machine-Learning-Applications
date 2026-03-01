@@ -1,0 +1,9 @@
+#include <vector>
+#include <functional>
+
+void process(const int& value) { /* stub */ }
+
+void processAll(const std::vector<int>& data) {
+    for (const auto& value : data)          // avoid implicit copies
+        process(value);
+}
