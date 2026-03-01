@@ -1,0 +1,12 @@
+#include class Matrix { public: Matrix(Matrix&& other) noexcept : data(std::move(other.data)) {} Matrix& operator=(Matrix&& other) noexcept { data = std::move(other.data); return *this; } private: std::vector> data; }; \end{verbatim}
+\begin{lstlisting}
+
+#include <type_traits>
+#include <utility>
+
+template <typename T>
+constexpr auto add(T&& a, T&& b)
+    -> std::enable_if_t<std::is_arithmetic_v<std::decay_t<T>>, std::decay_t<T>>
+{
+    return std::forward<T>(a) + std::forward<T>(b);
+}
