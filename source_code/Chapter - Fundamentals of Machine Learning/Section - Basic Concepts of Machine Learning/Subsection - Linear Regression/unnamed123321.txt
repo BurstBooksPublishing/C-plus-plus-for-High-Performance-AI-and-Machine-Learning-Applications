@@ -1,0 +1,46 @@
+#include <vector>
+#include <stdexcept>
+
+double compute_cost(const std::vector<double>& X,
+                    const std::vector<double>& y,
+                    const std::vector<double>& theta)
+{
+    if (X.size() != y.size() || theta.size() != 2)
+        throw std::invalid_argument("Size mismatch");
+
+    double cost = 0.0;
+    const std::size_t m = y.size();
+
+    for (std::size_t i = 0; i < m; ++i) {
+        const double prediction = theta[0] + theta[1] * X[i];
+        const double error = prediction - y[i];
+        cost += error * error;
+    }
+    return cost / (2.0 * m);
+}
+
+void gradient_descent(std::vector<double>& theta,
+                      const std::vector<double>& X,
+                      const std::vector<double>& y,
+                      const double alpha,
+                      const int iterations)
+{
+    if (X.size() != y.size() || theta.size() != 2 || alpha <= 0 || iterations <= 0)
+        throw std::invalid_argument("Invalid parameter");
+
+    const std::size_t m = y.size();
+
+    for (int iter = 0; iter < iterations; ++iter) {
+        double sumErr0 = 0.0, sumErr1 = 0.0;
+
+        for (std::size_t i = 0; i < m; ++i) {
+            const double pred = theta[0] + theta[1] * X[i];
+            const double err = pred - y[i];
+            sumErr0 += err;
+            sumErr1 += err * X[i];
+        }
+
+        theta[0] -= alpha * sumErr0 / m;
+        theta[1] -= alpha * sumErr1 / m;
+    }
+}
