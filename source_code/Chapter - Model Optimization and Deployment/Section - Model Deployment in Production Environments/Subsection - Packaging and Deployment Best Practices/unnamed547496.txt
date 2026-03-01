@@ -1,0 +1,16 @@
+cmake
+cmake_minimum_required(VERSION 3.20)
+project(MyApp LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Global, cache-visible release flags
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING "" FORCE)
+
+# Per-target tuning (preferred)
+add_executable(my_app src/main.cpp)
+target_compile_options(my_app PRIVATE
+    $<$<CONFIG:Release>:-O3 -march=native>
+)
