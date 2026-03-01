@@ -1,0 +1,14 @@
+#include <immintrin.h>   // AVX-512 intrinsics
+#include <cstddef>       // std::size_t
+
+// Add 'count' single-precision floats from 'a' and 'b' into 'dst'.
+// count must be a multiple of 16 (512-bit register / 32-bit float).
+void add_floats_avx512(const float* a, const float* b, float* dst, std::size_t count)
+{
+    for (std::size_t i = 0; i < count; i += 16) {
+        __m512 va = _mm512_loadu_ps(a + i);   // unaligned load
+        __m512 vb = _mm512_loadu_ps(b + i);
+        __m512 vc = _mm512_add_ps(va, vb);
+        _mm512_storeu_ps(dst + i, vc);
+    }
+}
