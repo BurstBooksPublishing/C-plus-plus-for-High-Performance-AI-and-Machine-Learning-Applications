@@ -1,0 +1,16 @@
+#include <iostream>
+#include <opencv2/core.hpp>
+#include <torch/torch.h>
+
+int main() {
+    std::cout << "OpenCV version: " << CV_VERSION << std::endl;
+    std::cout << "LibTorch version: " << TORCH_VERSION << std::endl;
+
+    if (torch::cuda::is_available()) {
+        std::cout << "CUDA available: " << torch::cuda::device_count() << " device(s)" << std::endl;
+    } else {
+        std::cout << "CUDA not available" << std::endl;
+    }
+
+    return 0;
+}
