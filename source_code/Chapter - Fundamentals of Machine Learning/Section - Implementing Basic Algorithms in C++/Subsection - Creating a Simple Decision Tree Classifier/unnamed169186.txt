@@ -1,0 +1,17 @@
+#include <vector>
+#include <map>
+
+double calculateGini(const std::vector<int>& labels) {
+    if (labels.empty()) return 0.0;          // avoid division by zero
+
+    std::map<int, std::size_t> labelCounts;  // label -> frequency
+    for (int label : labels) ++labelCounts[label];
+
+    double gini = 1.0;
+    const double n = labels.size();
+    for (const auto& [_, count] : labelCounts) {
+        double p = count / n;
+        gini -= p * p;
+    }
+    return gini;
+}
