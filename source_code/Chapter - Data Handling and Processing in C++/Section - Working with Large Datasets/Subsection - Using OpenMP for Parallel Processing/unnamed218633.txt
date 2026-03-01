@@ -1,0 +1,15 @@
+#include <iostream>
+#include <omp.h>
+
+int main() {
+    omp_set_num_threads(4);                 // fixed team size
+
+    #pragma omp parallel
+    {
+        int id = omp_get_thread_num();      // 0-based thread index
+        #pragma omp critical               // serialize output
+        std::cout << "Thread ID: " << id << '\n';
+    }
+
+    return 0;
+}
