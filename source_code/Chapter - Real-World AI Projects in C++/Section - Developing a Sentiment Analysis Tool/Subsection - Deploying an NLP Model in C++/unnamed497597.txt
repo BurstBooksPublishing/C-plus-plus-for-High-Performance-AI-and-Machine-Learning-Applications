@@ -1,0 +1,7 @@
+#include <string>
+#include <vector>
+
+std::vector<int> tokenize(const std::string& text) {
+    // Placeholder: replace with real tokenizer (e.g., WordPiece/BPE)
+    return {101, 2023, 2003, 1037, 3231, 102};
+}
