@@ -1,0 +1,25 @@
+#include <vector>
+#include <random>
+#include <algorithm>
+
+class NeuralNetwork;   // forward declaration – real definition elsewhere
+
+void train(NeuralNetwork& nn,
+           const std::vector<std::vector<double>>& inputs,
+           const std::vector<std::vector<double>>& targets,
+           std::size_t epochs,
+           double learning_rate)
+{
+    std::vector<std::size_t> idx(inputs.size());
+    for (std::size_t i = 0; i < idx.size(); ++i) idx[i] = i;
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    for (std::size_t epoch = 0; epoch < epochs; ++epoch) {
+        std::shuffle(idx.begin(), idx.end(), g);          // SGD: random order every epoch
+        for (std::size_t i : idx) {
+            nn.backpropagation(inputs[i], targets[i], learning_rate);
+        }
+    }
+}
