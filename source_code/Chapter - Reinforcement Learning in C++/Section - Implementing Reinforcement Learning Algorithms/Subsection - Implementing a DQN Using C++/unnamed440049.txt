@@ -1,0 +1,36 @@
+#include <deque>
+#include <tuple>
+#include <vector>
+#include <algorithm>   // sample
+#include <random>      // mt19937, random_device
+#include <stdexcept>   // invalid_argument
+
+class ReplayBuffer {
+public:
+    using Transition = std::tuple<float, float, float, float, bool>;  // s,a,r,s',done
+
+    explicit ReplayBuffer(size_t capacity) : capacity_(capacity), gen_(rd_()) {
+        if (capacity == 0) throw std::invalid_argument("capacity must be > 0");
+    }
+
+    void add(const Transition& t) {
+        if (buffer_.size() == capacity_) buffer_.pop_front();
+        buffer_.push_back(t);
+    }
+
+    std::vector<Transition> sample(size_t batch_size) {
+        if (batch_size > buffer_.size())
+            throw std::invalid_argument("batch_size > stored transitions");
+        std::vector<Transition> batch;
+        batch.reserve(batch_size);
+        std::sample(buffer_.begin(), buffer_.end(), std::back_inserter(batch),
+                    batch_size, gen_);
+        return batch;
+    }
+
+private:
+    std::deque<Transition> buffer_;
+    size_t capacity_;
+    std::random_device rd_;
+    std::mt19937 gen_;
+};
