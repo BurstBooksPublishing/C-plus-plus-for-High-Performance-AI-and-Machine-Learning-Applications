@@ -1,0 +1,14 @@
+#include <mlpack/core.hpp>
+#include <mlpack/methods/kmeans/kmeans.hpp>
+
+int main()
+{
+    arma::mat data;
+    mlpack::data::Load("data.csv", data, true);   // fatal on failure
+
+    arma::Row<size_t> assignments;                // discrete cluster labels
+    arma::mat centroids;                          // cluster centres
+
+    mlpack::kmeans::KMeans<> k(3);                // 3 clusters
+    k.Cluster(data, assignments, centroids);
+}
