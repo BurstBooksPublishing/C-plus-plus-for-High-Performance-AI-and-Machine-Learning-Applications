@@ -1,0 +1,5 @@
+#include <memory>   // std::make_unique
+#include <cstddef>  // std::size_t
+
+constexpr std::size_t large_size = 1024 * 1024;   // example value
+auto data = std::make_unique<std::byte[]>(large_size); // heap-allocated buffer
