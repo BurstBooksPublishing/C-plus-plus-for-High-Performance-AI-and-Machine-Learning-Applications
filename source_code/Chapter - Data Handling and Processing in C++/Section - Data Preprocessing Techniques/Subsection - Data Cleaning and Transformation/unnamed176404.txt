@@ -1,0 +1,9 @@
+#include <algorithm>
+#include <cmath>
+#include <vector>
+
+void replaceNaNs(std::vector<double>& data, double replacementValue) {
+    std::replace_if(data.begin(), data.end(),
+                    [](double x) { return std::isnan(x); },
+                    replacementValue);
+}
