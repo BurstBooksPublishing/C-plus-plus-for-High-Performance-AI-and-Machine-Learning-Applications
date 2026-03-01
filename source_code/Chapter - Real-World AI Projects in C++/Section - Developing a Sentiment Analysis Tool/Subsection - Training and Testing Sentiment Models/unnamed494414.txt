@@ -1,0 +1,27 @@
+#include <vector>
+#include <string>
+#include <iostream>
+
+// Assume these are provided elsewhere
+std::vector<double> testLabels;
+std::vector<std::string> testTexts;
+
+class Model {
+public:
+    double predict(const std::string& text) const;
+};
+
+double calculateAccuracy(const std::vector<double>& preds, const std::vector<double>& labels);
+
+int main() {
+    Model model;
+
+    std::vector<double> testPredictions;
+    testPredictions.reserve(testTexts.size());          // prevent reallocations
+    for (const auto& text : testTexts) {
+        testPredictions.push_back(model.predict(text));
+    }
+
+    const double accuracy = calculateAccuracy(testPredictions, testLabels);
+    std::cout << "Accuracy: " << accuracy << '\n';
+}
