@@ -1,0 +1,1 @@
+class Optimizer { public: virtual void optimize(NeuralNetwork& network) = 0; }; class SGD : public Optimizer { public: void optimize(NeuralNetwork& network) override { // Implementation of Stochastic Gradient Descent } };
