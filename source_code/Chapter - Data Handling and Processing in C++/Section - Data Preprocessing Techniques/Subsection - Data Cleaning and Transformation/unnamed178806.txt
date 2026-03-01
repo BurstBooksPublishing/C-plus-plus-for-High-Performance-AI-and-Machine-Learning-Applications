@@ -1,0 +1,20 @@
+#include <vector>
+#include <unordered_map>
+#include <string>
+
+void oneHotEncode(const std::vector<std::string>& categories,
+                  std::vector<std::vector<int>>& encoded)
+{
+    std::unordered_map<std::string, std::size_t> catToIdx;
+    catToIdx.reserve(categories.size());
+
+    // build unique category → index map
+    for (const auto& cat : categories)
+        catToIdx.try_emplace(cat, catToIdx.size());
+
+    // allocate & fill one-hot matrix
+    encoded.assign(categories.size(),
+                   std::vector<int>(catToIdx.size(), 0));
+    for (std::size_t i = 0; i < categories.size(); ++i)
+        encoded[i][catToIdx[categories[i]]] = 1;
+}
