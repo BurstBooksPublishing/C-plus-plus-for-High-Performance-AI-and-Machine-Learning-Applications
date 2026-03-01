@@ -1,0 +1,45 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <numeric>
+#include <stdexcept>
+#include <vector>
+
+// Returns Euclidean distance; throws if sizes differ
+double euclideanDistance(const std::vector<double>& a, const std::vector<double>& b) {
+    if (a.size() != b.size()) throw std::invalid_argument("size mismatch");
+    double sum = std::inner_product(a.begin(), a.end(), b.begin(), 0.0,
+                                    std::plus<>(), [](double x, double y) {
+                                        double d = x - y; return d * d;
+                                    });
+    return std::sqrt(sum);
+}
+
+// Returns cosine similarity ∈ [-1,1]; throws if sizes differ
+double cosineSimilarity(const std::vector<double>& a, const std::vector<double>& b) {
+    if (a.size() != b.size()) throw std::invalid_argument("size mismatch");
+    double dot = std::inner_product(a.begin(), a.end(), b.begin(), 0.0);
+    double norm_a = std::sqrt(std::inner_product(a.begin(), a.end(), a.begin(), 0.0));
+    double norm_b = std::sqrt(std::inner_product(b.begin(), b.end(), b.begin(), 0.0));
+    if (norm_a == 0.0 || norm_b == 0.0) return 0.0;
+    return dot / (norm_a * norm_b);
+}
+
+// Returns Jaccard coefficient for sorted integer vectors
+double jaccardSimilarity(const std::vector<int>& a, const std::vector<int>& b) {
+    std::vector<int> intersection, uni;
+    std::set_intersection(a.begin(), a.end(), b.begin(), b.end(),
+                          std::back_inserter(intersection));
+    std::set_union(a.begin(), a.end(), b.begin(), b.end(),
+                   std::back_inserter(uni));
+    return uni.empty() ? 0.0 : static_cast<double>(intersection.size()) / uni.size();
+}
+
+int main() {
+    const std::vector<double> vec1{1.0, 2.0, 3.0}, vec2{4.0, 5.0, 6.0};
+    const std::vector<int> set1{1, 2, 3}, set2{2, 3, 4};
+
+    std::cout << "Euclidean Distance: " << euclideanDistance(vec1, vec2) << '\n';
+    std::cout << "Cosine Similarity:  " << cosineSimilarity(vec1, vec2) << '\n';
+    std::cout << "Jaccard Similarity: " << jaccardSimilarity(set1, set2) << '\n';
+}
