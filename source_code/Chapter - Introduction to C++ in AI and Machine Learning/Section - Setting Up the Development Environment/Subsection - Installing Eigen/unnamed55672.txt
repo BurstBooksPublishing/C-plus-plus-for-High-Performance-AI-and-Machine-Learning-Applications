@@ -1,0 +1,12 @@
+#include <iostream>
+#include <stdexcept>
+
+int main() {
+    try {
+        std::cout << "Hello, production-ready world!" << std::endl;
+        return 0;
+    } catch (const std::exception& ex) {
+        std::cerr << "Fatal: " << ex.what() << std::endl;
+        return 1;
+    }
+}
