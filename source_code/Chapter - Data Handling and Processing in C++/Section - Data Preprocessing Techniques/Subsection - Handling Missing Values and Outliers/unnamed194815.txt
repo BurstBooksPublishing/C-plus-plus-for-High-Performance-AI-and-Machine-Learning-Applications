@@ -1,0 +1,9 @@
+#include <algorithm>   // std::remove_if
+#include <vector>      // std::vector
+
+// Remove all elements outside the inclusive range [lower_bound, upper_bound].
+data.erase(std::remove_if(data.begin(), data.end(),
+                          [lower_bound, upper_bound](double x) {
+                              return x < lower_bound || x > upper_bound;
+                          }),
+           data.end());
