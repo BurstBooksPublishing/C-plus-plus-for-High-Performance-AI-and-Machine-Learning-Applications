@@ -1,0 +1,34 @@
+#include <Eigen/Dense>
+#include <vector>
+
+class PolicyGradient {
+public:
+    PolicyGradient(int state_dim, int action_dim, double learning_rate)
+        : theta_(state_dim, action_dim), alpha_(learning_rate) {
+        theta_.setRandom();
+    }
+
+    // Compute unnormalized action probabilities: exp(theta^T * state)
+    Eigen::VectorXd policy(const Eigen::VectorXd& state) const {
+        return (theta_.transpose() * state).array().exp();
+    }
+
+    // REINFORCE update with Monte-Carlo returns
+    void update(const std::vector<Eigen::VectorXd>& states,
+                const std::vector<Eigen::VectorXd>& actions,
+                const std::vector<double>& rewards) {
+        Eigen::MatrixXd grad = Eigen::MatrixXd::Zero(theta_.rows(), theta_.cols());
+        for (size_t t = 0; t < states.size(); ++t) {
+            const Eigen::VectorXd& st = states[t];
+            const Eigen::VectorXd& at = actions[t];
+            double Gt = rewards[t];
+            Eigen::VectorXd pi = policy(st);
+            grad += st * (at - pi).transpose() * Gt;
+        }
+        theta_ += alpha_ * grad;
+    }
+
+private:
+    Eigen::MatrixXd theta_;
+    double alpha_;
+};
