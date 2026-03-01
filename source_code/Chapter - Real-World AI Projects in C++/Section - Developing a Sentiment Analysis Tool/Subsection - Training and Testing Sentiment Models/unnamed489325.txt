@@ -1,0 +1,67 @@
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <sstream>
+#include <algorithm>
+#include <cmath>
+
+class NaiveBayes {
+public:
+    void train(const std::vector<std::string>& texts, const std::vector<int>& labels) {
+        if (texts.size() != labels.size()) return;
+
+        for (size_t i = 0; i < texts.size(); ++i) {
+            int label = labels[i];
+            ++classCounts_[label];
+
+            std::istringstream iss(texts[i]);
+            std::string word;
+            while (iss >> word) {
+                std::transform(word.begin(), word.end(), word.begin(), ::tolower);
+                ++wordCounts_[label][word];
+                ++totalWords_[label];
+            }
+        }
+
+        totalDocs_ = texts.size();
+    }
+
+    int predict(const std::vector<std::string>& text) const {
+        std::unordered_map<int, double> scores;
+
+        for (const auto& cls : classCounts_) {
+            int label = cls.first;
+            double score = std::log(static_cast<double>(cls.second) / totalDocs_);
+
+            for (const auto& line : text) {
+                std::istringstream iss(line);
+                std::string word;
+                while (iss >> word) {
+                    std::transform(word.begin(), word.end(), word.begin(), ::tolower);
+                    double wordProb = 1.0;
+                    auto it = wordCounts_.find(label);
+                    if (it != wordCounts_.end()) {
+                        auto wit = it->second.find(word);
+                        if (wit != it->second.end()) {
+                            wordProb = (wit->second + 1.0) / (totalWords_.at(label) + vocabularySize_);
+                        } else {
+                            wordProb = 1.0 / (totalWords_.at(label) + vocabularySize_);
+                        }
+                    }
+                    score += std::log(wordProb);
+                }
+            }
+            scores[label] = score;
+        }
+
+        return std::max_element(scores.begin(), scores.end(),
+            [](const auto& a, const auto& b) { return a.second < b.second; })->first;
+    }
+
+private:
+    std::unordered_map<int, int> classCounts_;
+    std::unordered_map<int, std::unordered_map<std::string, int>> wordCounts_;
+    std::unordered_map<int, int> totalWords_;
+    size_t totalDocs_ = 0;
+    static constexpr double vocabularySize_ = 10000.0; // Laplace smoothing assumption
+};
