@@ -1,0 +1,31 @@
+#include <fstream>
+#include <iostream>
+#include <chrono>
+#include <iomanip>
+#include <mutex>
+
+namespace metrics {
+
+// Thread-safe logger that appends a single CSV line per call.
+void log_metrics(const std::string& filename,
+                 double accuracy,
+                 double precision,
+                 double recall)
+{
+    static std::mutex mtx;                       // protect file access
+    std::lock_guard<std::mutex> lock(mtx);
+
+    std::ofstream log_file(filename, std::ios::app);
+    if (!log_file) {                             // failed to open
+        std::cerr << "metrics: cannot open " << filename << '\n';
+        return;
+    }
+
+    auto now = std::chrono::system_clock::now();
+    auto t   = std::chrono::system_clock::to_time_t(now);
+
+    log_file << std::put_time(std::gmtime(&t), "%Y-%m-%dT%H:%M:%SZ") << ','
+             << accuracy << ',' << precision << ',' << recall << '\n';
+}
+
+} // namespace metrics
