@@ -1,0 +1,32 @@
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+class ConfigurationManager;
+class Layer;
+class Optimizer;
+class TrainingContext;
+class LayerFactory;
+class SGD;
+class Adam;
+
+void setupTraining() {
+    ConfigurationManager* config = ConfigurationManager::getInstance();
+    const std::string layerType = config->getConfig("layer_type");
+    const std::string optimizerType = config->getConfig("optimizer");
+
+    std::unique_ptr<Layer> layer(LayerFactory::createLayer(layerType));
+    std::unique_ptr<Optimizer> optimizer;
+
+    if (optimizerType == "sgd") {
+        optimizer = std::make_unique<SGD>();
+    } else if (optimizerType == "adam") {
+        optimizer = std::make_unique<Adam>();
+    } else {
+        throw std::invalid_argument("Unsupported optimizer type");
+    }
+
+    TrainingContext context;
+    context.setOptimizer(optimizer.get());
+    context.train();
+}
