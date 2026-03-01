@@ -1,0 +1,22 @@
+#include <vector>
+#include <functional>
+
+// Forward declaration of neuron (assumed to exist elsewhere)
+double neuron(const std::vector<double>&,
+              const std::vector<double>&,
+              double,
+              std::function<double(double)>);
+
+std::vector<double> layer(const std::vector<double>& inputs,
+                          const std::vector<std::vector<double>>& weights,
+                          const std::vector<double>& biases,
+                          std::function<double(double)> activation)
+{
+    std::vector<double> outputs;
+    outputs.reserve(weights.size());
+
+    for (size_t i = 0; i < weights.size(); ++i) {
+        outputs.push_back(neuron(inputs, weights[i], biases[i], activation));
+    }
+    return outputs;
+}
