@@ -1,0 +1,42 @@
+#include <algorithm>
+#include <cmath>
+#include <map>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+using std::find;
+using std::log;
+using std::map;
+using std::string;
+using std::unordered_map;
+using std::vector;
+
+// Compute term-frequency (TF) for a single document
+unordered_map<string, double> computeTF(const vector<string>& document) {
+    unordered_map<string, double> tf;
+    for (const auto& word : document) ++tf[word];
+
+    const double inv_size = 1.0 / document.size();
+    for (auto& [word, freq] : tf) freq *= inv_size;
+    return tf;
+}
+
+// Compute inverse-document-frequency (IDF) for a term across all documents
+double computeIDF(const vector<vector<string>>& documents, const string& term) {
+    size_t docs_with_term = 0;
+    for (const auto& doc : documents)
+        if (find(doc.begin(), doc.end(), term) != doc.end()) ++docs_with_term;
+
+    return log(static_cast<double>(documents.size()) / docs_with_term);
+}
+
+// Compute TF-IDF scores for every term in the given document
+unordered_map<string, double> computeTFIDF(const vector<string>& document,
+                                           const vector<vector<string>>& documents) {
+    const auto tf = computeTF(document);
+    unordered_map<string, double> tfidf;
+    for (const auto& [word, freq] : tf)
+        tfidf[word] = freq * computeIDF(documents, word);
+    return tfidf;
+}
