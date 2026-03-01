@@ -1,0 +1,66 @@
+#include <vector>
+#include <queue>
+#include <unordered_map>
+#include <cmath>
+
+struct Node {
+    int x{}, y{};
+    float g{}, h{};
+    bool operator<(const Node& other) const { return g + h > other.g + other.h; }
+};
+
+static float heuristic(int x1, int y1, int x2, int y2) {
+    return std::hypot(x1 - x2, y1 - y2);
+}
+
+std::vector<Node> aStar(const Node& start, const Node& goal) {
+    auto cmp = [](const Node* a, const Node* b) { return *a < *b; };
+    std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> open(cmp);
+    std::unordered_map<uint64_t, Node*> all;          // owns all nodes
+    std::unordered_map<uint64_t, uint64_t> cameFrom;  // child -> parent key
+
+    auto key = [](int x, int y) -> uint64_t {
+        return (static_cast<uint64_t>(x) << 32) | (static_cast<uint32_t>(y));
+    };
+
+    Node* s = new Node{start.x, start.y, 0, heuristic(start.x, start.y, goal.x, goal.y)};
+    all[key(start.x, start.y)] = s;
+    open.push(s);
+
+    const int dx[] = {-1, 1, 0, 0}, dy[] = {0, 0, -1, 1};
+
+    while (!open.empty()) {
+        Node* cur = open.top();
+        open.pop();
+        if (cur->x == goal.x && cur->y == goal.y) {
+            std::vector<Node> path;
+            uint64_t k = key(cur->x, cur->y);
+            while (all.count(k)) {
+                path.push_back(*all[k]);
+                if (!cameFrom.count(k)) break;
+                k = cameFrom[k];
+            }
+            for (auto& p : all) delete p.second;
+            std::reverse(path.begin(), path.end());
+            return path;
+        }
+        for (int i = 0; i < 4; ++i) {
+            int nx = cur->x + dx[i], ny = cur->y + dy[i];
+            uint64_t nk = key(nx, ny);
+            float ng = cur->g + 1;
+            if (all.count(nk) && all[nk]->g <= ng) continue;
+            Node* nb;
+            if (!all.count(nk)) {
+                nb = new Node{nx, ny, ng, heuristic(nx, ny, goal.x, goal.y)};
+                all[nk] = nb;
+            } else {
+                nb = all[nk];
+                nb->g = ng;
+            }
+            cameFrom[nk] = key(cur->x, cur->y);
+            open.push(nb);
+        }
+    }
+    for (auto& p : all) delete p.second;
+    return {};
+}
