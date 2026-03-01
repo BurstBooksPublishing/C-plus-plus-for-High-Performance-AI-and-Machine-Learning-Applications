@@ -1,0 +1,49 @@
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+
+class MLStrategy {
+public:
+    virtual ~MLStrategy() = default;
+    virtual void train() = 0;
+    virtual void predict() = 0;
+};
+
+class LinearRegression final : public MLStrategy {
+public:
+    void train() override { std::cout << "Training Linear Regression model...\n"; }
+    void predict() override { std::cout << "Predicting with Linear Regression model...\n"; }
+};
+
+class DecisionTree final : public MLStrategy {
+public:
+    void train() override { std::cout << "Training Decision Tree model...\n"; }
+    void predict() override { std::cout << "Predicting with Decision Tree model...\n"; }
+};
+
+class MLContext {
+    std::unique_ptr<MLStrategy> strategy_;
+public:
+    void setStrategy(std::unique_ptr<MLStrategy> newStrategy) {
+        if (!newStrategy) throw std::invalid_argument("Strategy cannot be null");
+        strategy_ = std::move(newStrategy);
+    }
+    void train() {
+        if (!strategy_) throw std::runtime_error("No strategy set");
+        strategy_->train();
+    }
+    void predict() {
+        if (!strategy_) throw std::runtime_error("No strategy set");
+        strategy_->predict();
+    }
+};
+
+int main() {
+    MLContext ctx;
+    ctx.setStrategy(std::make_unique<LinearRegression>());
+    ctx.train();
+    ctx.predict();
+    ctx.setStrategy(std::make_unique<DecisionTree>());
+    ctx.train();
+    ctx.predict();
+}
