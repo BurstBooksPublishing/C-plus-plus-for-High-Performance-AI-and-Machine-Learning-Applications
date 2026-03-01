@@ -1,0 +1,17 @@
+#include <arrow/api.h>
+#include <arrow/io/api.h>
+#include <memory>
+
+std::shared_ptr<arrow::Int32Array> buildInt32Array() {
+    arrow::MemoryPool* pool = arrow::default_memory_pool();
+    arrow::Int32Builder builder(pool);
+
+    // Append values; propagate any error upward
+    ARROW_RETURN_NOT_OK(builder.Append(10));
+    ARROW_RETURN_NOT_OK(builder.Append(20));
+    ARROW_RETURN_NOT_OK(builder.Append(30));
+
+    std::shared_ptr<arrow::Int32Array> array;
+    ARROW_RETURN_NOT_OK(builder.Finish(&array));
+    return array;
+}
