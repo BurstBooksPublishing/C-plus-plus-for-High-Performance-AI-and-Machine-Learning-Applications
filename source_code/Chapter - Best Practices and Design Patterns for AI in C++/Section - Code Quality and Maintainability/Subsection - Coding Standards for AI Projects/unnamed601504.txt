@@ -1,0 +1,21 @@
+#include <vector>
+#include <cmath>
+#include <stdexcept>
+
+double euclidean_distance(const std::vector<double>& a, const std::vector<double>& b) {
+    if (a.size() != b.size()) throw std::invalid_argument("Mismatched dimensions");
+    double sum = 0.0;
+    for (size_t i = 0; i < a.size(); ++i) {
+        double d = a[i] - b[i];
+        sum += d * d;
+    }
+    return std::sqrt(sum);
+}
+
+void test_euclidean_distance() {
+    std::vector<double> a = {1.0, 2.0, 3.0};
+    std::vector<double> b = {4.0, 5.0, 6.0};
+    double expected = 5.196152;
+    double result = euclidean_distance(a, b);
+    assert(std::abs(result - expected) < 1e-6);
+}
