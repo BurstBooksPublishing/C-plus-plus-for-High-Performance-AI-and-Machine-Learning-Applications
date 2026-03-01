@@ -1,0 +1,70 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <limits>
+#include <numeric>
+#include <unordered_map>
+#include <vector>
+
+// Returns the mean of non-NaN values; throws if none exist
+double calculateMean(const std::vector<double>& data) {
+    double sum = 0.0;
+    std::size_t count = 0;
+    for (double v : data) if (!std::isnan(v)) { sum += v; ++count; }
+    if (count == 0) throw std::invalid_argument("No valid data");
+    return sum / count;
+}
+
+// Replace NaNs with the mean of valid values
+void meanImputation(std::vector<double>& data) {
+    double m = calculateMean(data);
+    std::replace_if(data.begin(), data.end(),
+                    [](double v) { return std::isnan(v); }, m);
+}
+
+// Replace NaNs with the median of valid values
+void medianImputation(std::vector<double>& data) {
+    std::vector<double> tmp;
+    tmp.reserve(data.size());
+    for (double v : data) if (!std::isnan(v)) tmp.push_back(v);
+    if (tmp.empty()) throw std::invalid_argument("No valid data");
+
+    std::nth_element(tmp.begin(), tmp.begin() + tmp.size() / 2, tmp.end());
+    double med = tmp[tmp.size() / 2];
+    if (tmp.size() % 2 == 0) {
+        auto upper = std::max_element(tmp.begin(), tmp.begin() + tmp.size() / 2);
+        med = (*upper + med) / 2.0;
+    }
+
+    std::replace_if(data.begin(), data.end(),
+                    [](double v) { return std::isnan(v); }, med);
+}
+
+// Replace NaNs with the most frequent valid value
+void modeImputation(std::vector<double>& data) {
+    std::unordered_map<double, std::size_t> freq;
+    for (double v : data) if (!std::isnan(v)) ++freq[v];
+    if (freq.empty()) throw std::invalid_argument("No valid data");
+
+    auto modeIt = std::max_element(freq.begin(), freq.end(),
+                                   [](const auto& a, const auto& b)
+                                   { return a.second < b.second; });
+    std::replace_if(data.begin(), data.end(),
+                    [](double v) { return std::isnan(v); }, modeIt->first);
+}
+
+int main() {
+    std::vector<double> data{1.0, 2.0, std::numeric_limits<double>::quiet_NaN(), 4.0, 5.0};
+
+    meanImputation(data);
+    for (double v : data) std::cout << v << ' ';
+    std::cout << '\n';
+
+    medianImputation(data);
+    for (double v : data) std::cout << v << ' ';
+    std::cout << '\n';
+
+    modeImputation(data);
+    for (double v : data) std::cout << v << ' ';
+    std::cout << '\n';
+}
