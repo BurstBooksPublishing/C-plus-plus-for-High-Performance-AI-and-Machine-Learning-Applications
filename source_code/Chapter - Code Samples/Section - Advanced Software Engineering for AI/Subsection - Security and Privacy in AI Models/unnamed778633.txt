@@ -1,0 +1,82 @@
+#include <algorithm>
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <random>
+#include <vector>
+
+constexpr int GRID_SIZE = 5;
+constexpr double GAMMA = 0.9;
+constexpr double ALPHA = 0.1;
+constexpr int EPISODES = 1000;
+
+enum Action { UP, DOWN, LEFT, RIGHT, ACTIONS_COUNT };
+
+using QTable = std::vector<std::vector<std::vector<double>>>;
+
+QTable buildQTable() {
+    return QTable(GRID_SIZE,
+                  std::vector<std::vector<double>>(
+                      GRID_SIZE, std::vector<double>(ACTIONS_COUNT, 0.0)));
+}
+
+const std::vector<std::vector<int>> REWARD_GRID = {
+    {-1, -1, -1, -1, 10},
+    {-1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1}};
+
+thread_local std::mt19937 rng{std::chrono::steady_clock::now()
+                                  .time_since_epoch()
+                                  .count()};
+
+Action chooseAction(const QTable& q, int x, int y, double eps) {
+    std::uniform_real_distribution<double> dist01(0.0, 1.0);
+    if (dist01(rng) < eps) {
+        std::uniform_int_distribution<int> distA(0, ACTIONS_COUNT - 1);
+        return static_cast<Action>(distA(rng));
+    }
+    const auto& row = q[x][y];
+    return static_cast<Action>(
+        std::distance(row.begin(), std::max_element(row.begin(), row.end())));
+}
+
+void step(int& x, int& y, Action a) {
+    switch (a) {
+        case UP:    if (x > 0) --x; break;
+        case DOWN:  if (x < GRID_SIZE - 1) ++x; break;
+        case LEFT:  if (y > 0) --y; break;
+        case RIGHT: if (y < GRID_SIZE - 1) ++y; break;
+    }
+}
+
+void update(QTable& q, int x, int y, Action a, int nx, int ny) {
+    double best = *std::max_element(q[nx][ny].begin(), q[nx][ny].end());
+    double& old = q[x][y][a];
+    old += ALPHA * (REWARD_GRID[x][y] + GAMMA * best - old);
+}
+
+int main() {
+    QTable q = buildQTable();
+
+    for (int ep = 0; ep < EPISODES; ++ep) {
+        double epsilon = 1.0 / (ep + 1);
+        int x = 0, y = 0;
+        while (x != GRID_SIZE - 1 || y != GRID_SIZE - 1) {
+            Action a = chooseAction(q, x, y, epsilon);
+            int ox = x, oy = y;
+            step(x, y, a);
+            update(q, ox, oy, a, x, y);
+        }
+    }
+
+    for (int i = 0; i < GRID_SIZE; ++i) {
+        for (int j = 0; j < GRID_SIZE; ++j) {
+            std::cout << '(' << i << ',' << j << ") ";
+            for (double v : q[i][j]) std::cout << std::setw(7) << std::fixed << std::setprecision(3) << v << ' ';
+            std::cout << '\n';
+        }
+    }
+    return 0;
+}
