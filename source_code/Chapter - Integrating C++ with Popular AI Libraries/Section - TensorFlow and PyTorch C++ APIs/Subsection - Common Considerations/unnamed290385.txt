@@ -1,0 +1,21 @@
+cmake
+cmake_minimum_required(VERSION 3.18)          # 3.18: file(ARCHIVE_EXTRACT) & better CUDA support
+project(torch_example
+        VERSION 1.0.0
+        LANGUAGES CXX CUDA)                   # CUDA optional but common with LibTorch
+
+set(CMAKE_CXX_STANDARD 17)                    # LibTorch 2.x prefers C++17
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)         # clangd / IDE support
+
+# ---------- dependencies ----------
+find_package(Torch 2.0 REQUIRED CONFIG)
+
+# ---------- main executable ----------
+add_executable(torch_example torch_example.cpp)
+target_link_libraries(torch_example PRIVATE torch::torch)  # modern imported target
+
+# ---------- installation ----------
+include(GNUInstallDirs)
+install(TARGETS torch_example
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
