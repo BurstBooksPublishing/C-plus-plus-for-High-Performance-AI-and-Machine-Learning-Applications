@@ -1,0 +1,7 @@
+#include <unordered_map>
+
+int main() {
+    std::unordered_map<int, float> hash_table; // key: int, value: float
+    hash_table[42] = 3.14f;                    // insert or update value for key 42
+    return 0;
+}
