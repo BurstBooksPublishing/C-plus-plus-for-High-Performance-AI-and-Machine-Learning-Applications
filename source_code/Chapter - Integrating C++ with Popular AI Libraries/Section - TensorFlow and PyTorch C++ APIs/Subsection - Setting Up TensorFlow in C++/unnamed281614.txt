@@ -1,0 +1,14 @@
+bash
+#!/usr/bin/env bash
+# Portable library setup for C/C++ builds
+
+set -euo pipefail
+
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+LIB_DIR="${SCRIPT_DIR}/lib"
+INC_DIR="${SCRIPT_DIR}/include"
+
+# Append only if directories exist to avoid polluting variables
+[[ -d "$LIB_DIR" ]] && export LIBRARY_PATH="${LIBRARY_PATH:+$LIBRARY_PATH:}${LIB_DIR}"
+[[ -d "$LIB_DIR" ]] && export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${LIB_DIR}"
+[[ -d "$INC_DIR" ]] && export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH:+$CPLUS_INCLUDE_PATH:}${INC_DIR}"
