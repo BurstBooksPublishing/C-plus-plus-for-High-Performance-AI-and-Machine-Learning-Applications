@@ -1,0 +1,66 @@
+#include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <random>
+#include <vector>
+
+class Environment {
+public:
+    int state = 0;
+
+    int step(int action) {
+        if (action == 1) {
+            state += 1;
+            return 10;
+        } else {
+            state -= 1;
+            return -10;
+        }
+    }
+};
+
+class Agent {
+public:
+    double epsilon;
+    std::vector<double> qValues;
+
+    Agent(double eps = 0.1) : epsilon(eps), qValues(2, 0.0) {}
+
+    int chooseAction(std::mt19937& gen) {
+        std::uniform_real_distribution<> dis(0.0, 1.0);
+        if (dis(gen) < epsilon) {
+            std::uniform_int_distribution<> act(0, 1);
+            return act(gen);
+        }
+        return std::distance(qValues.begin(),
+                             std::max_element(qValues.begin(), qValues.end()));
+    }
+
+    void updateQValue(int action, double reward, double learningRate, double discountFactor) {
+        double maxQ = *std::max_element(qValues.begin(), qValues.end());
+        qValues[action] += learningRate * (reward + discountFactor * maxQ - qValues[action]);
+    }
+};
+
+int main() {
+    Environment env;
+    Agent agent(0.1);
+    std::mt19937 gen{std::random_device{}()};
+    const double learningRate = 0.1;
+    const double discountFactor = 0.9;
+    const int episodes = 1000;
+
+    for (int episode = 0; episode < episodes; ++episode) {
+        int state = env.state;
+        int action = agent.chooseAction(gen);
+        int reward = env.step(action);
+        agent.updateQValue(action, reward, learningRate, discountFactor);
+
+        std::cout << "Episode: " << episode
+                  << " State: " << state
+                  << " Action: " << action
+                  << " Reward: " << reward
+                  << " Q: [" << agent.qValues[0]
+                  << ", " << agent.qValues[1] << "]\n";
+    }
+}
