@@ -1,0 +1,22 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+int main(int argc, char* argv[]) {
+    const std::string inFile  = (argc > 1) ? argv[1] : "road.jpg";
+    const std::string outFile = (argc > 2) ? argv[2] : "edges.jpg";
+
+    cv::Mat image = cv::imread(inFile, cv::IMREAD_GRAYSCALE);
+    if (image.empty()) {                                    // fail fast on missing / invalid input
+        std::cerr << "Cannot read image: " << inFile << '\n';
+        return EXIT_FAILURE;
+    }
+
+    cv::Mat edges;
+    cv::Canny(image, edges, 100, 200);                      // classic Canny thresholds
+
+    if (!cv::imwrite(outFile, edges)) {                     // verify write success
+        std::cerr << "Cannot write image: " << outFile << '\n';
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
