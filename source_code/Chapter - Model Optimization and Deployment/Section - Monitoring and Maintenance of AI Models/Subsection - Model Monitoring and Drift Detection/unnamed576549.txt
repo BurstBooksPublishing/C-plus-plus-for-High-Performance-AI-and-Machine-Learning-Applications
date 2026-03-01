@@ -1,0 +1,14 @@
+#include <iostream>
+#include <stdexcept>
+
+void check_for_drift(double ks_statistic, double threshold) {
+    if (std::isnan(ks_statistic) || std::isnan(threshold))
+        throw std::invalid_argument("ks_statistic and threshold must be finite");
+
+    if (ks_statistic > threshold) {
+        std::cout << "Drift detected! KS statistic: " << ks_statistic << '\n';
+        // TODO: integrate alerting/retraining pipeline
+    } else {
+        std::cout << "No significant drift detected.\n";
+    }
+}
