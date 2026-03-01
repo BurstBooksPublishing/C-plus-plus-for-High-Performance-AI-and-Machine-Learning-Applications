@@ -1,0 +1,38 @@
+#include <algorithm>
+#include <cmath>
+#include <stdexcept>
+#include <vector>
+
+double ks_statistic(const std::vector<double>& data1, const std::vector<double>& data2) {
+    if (data1.empty() || data2.empty())
+        throw std::invalid_argument("Input vectors must not be empty.");
+
+    std::vector<double> sorted_data1 = data1;
+    std::vector<double> sorted_data2 = data2;
+    std::sort(sorted_data1.begin(), sorted_data1.end());
+    std::sort(sorted_data2.begin(), sorted_data2.end());
+
+    const double inv_n1 = 1.0 / sorted_data1.size();
+    const double inv_n2 = 1.0 / sorted_data2.size();
+
+    double max_diff = 0.0;
+    size_t i = 0, j = 0;
+    double cum1 = 0.0, cum2 = 0.0;
+
+    while (i < sorted_data1.size() && j < sorted_data2.size()) {
+        if (sorted_data1[i] < sorted_data2[j]) {
+            cum1 += inv_n1;
+            ++i;
+        } else if (sorted_data1[i] > sorted_data2[j]) {
+            cum2 += inv_n2;
+            ++j;
+        } else { // equal values: advance both to avoid double-counting
+            cum1 += inv_n1;
+            cum2 += inv_n2;
+            ++i;
+            ++j;
+        }
+        max_diff = std::max(max_diff, std::abs(cum1 - cum2));
+    }
+    return max_diff;
+}
