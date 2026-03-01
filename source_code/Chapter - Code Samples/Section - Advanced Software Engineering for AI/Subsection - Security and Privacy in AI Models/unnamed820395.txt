@@ -1,0 +1,83 @@
+// Example: Writing documentation for AI applications in C++
+// This code demonstrates best practices for code quality and maintainability
+// in AI and Machine Learning applications.
+
+#include 
+#include 
+#include 
+
+/**
+ * @brief Computes the sigmoid activation function.
+ * 
+ * The sigmoid function is commonly used in neural networks for binary classification.
+ * 
+ * @param x The input value.
+ * @return The sigmoid of the input value.
+ */
+double sigmoid(double x) {
+    return 1.0 / (1.0 + exp(-x)); // Sigmoid formula: 1 / (1 + e^(-x))
+}
+
+/**
+ * @brief Represents a simple neural network layer.
+ * 
+ * This class encapsulates the weights and biases of a single layer in a neural network.
+ */
+class NeuralLayer {
+public:
+    std::vector> weights; // Weight matrix for the layer
+    std::vector biases;               // Bias vector for the layer
+
+    /**
+     * @brief Initializes the neural layer with random weights and biases.
+     * 
+     * @param inputSize The number of input neurons.
+     * @param outputSize The number of output neurons.
+     */
+    NeuralLayer(int inputSize, int outputSize) {
+        weights.resize(outputSize, std::vector(inputSize, 0.0));
+        biases.resize(outputSize, 0.0);
+        // Initialize weights and biases with random values
+        for (auto& row : weights) {
+            for (auto& val : row) {
+                val = (double)rand() / RAND_MAX; // Random value between 0 and 1
+            }
+        }
+        for (auto& bias : biases) {
+            bias = (double)rand() / RAND_MAX; // Random value between 0 and 1
+        }
+    }
+
+    /**
+     * @brief Computes the output of the layer for a given input.
+     * 
+     * @param input The input vector.
+     * @return The output vector after applying weights, biases, and activation.
+     */
+    std::vector forward(const std::vector& input) {
+        std::vector output(biases.size(), 0.0);
+        for (size_t i = 0; i < weights.size(); ++i) {
+            for (size_t j = 0; j < input.size(); ++j) {
+                output[i] += weights[i][j] * input[j]; // Weighted sum
+            }
+            output[i] += biases[i];                   // Add bias
+            output[i] = sigmoid(output[i]);           // Apply activation function
+        }
+        return output;
+    }
+};
+
+int main() {
+    // Example usage of the NeuralLayer class
+    NeuralLayer layer(3, 2); // Create a layer with 3 inputs and 2 outputs
+    std::vector input = {0.5, 0.1, 0.9}; // Example input vector
+    std::vector output = layer.forward(input); // Compute output
+
+    // Print the output
+    for (const auto& val : output) {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
