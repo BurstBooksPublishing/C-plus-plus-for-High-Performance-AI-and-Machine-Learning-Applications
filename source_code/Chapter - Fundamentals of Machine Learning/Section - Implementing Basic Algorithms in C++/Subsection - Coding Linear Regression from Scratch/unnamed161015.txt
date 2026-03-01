@@ -1,0 +1,21 @@
+#include <vector>
+#include <stdexcept>
+
+std::vector<double> gradientDescent(const std::vector<std::vector<double>>& X,
+                                    const std::vector<double>& y,
+                                    std::vector<double>& theta,
+                                    double alpha,
+                                    int num_iters);
+
+std::vector<double> trainLinearRegression(const std::vector<std::vector<double>>& X,
+                                          const std::vector<double>& y,
+                                          double alpha,
+                                          int num_iters)
+{
+    if (X.empty() || y.empty() || X.size() != y.size() || alpha <= 0 || num_iters <= 0)
+        throw std::invalid_argument("Invalid input dimensions or parameters");
+
+    std::vector<double> theta(X[0].size() + 1, 0.0);
+    gradientDescent(X, y, theta, alpha, num_iters);
+    return theta;
+}
