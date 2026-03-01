@@ -1,0 +1,44 @@
+#include <algorithm>
+#include <random>
+#include <tuple>
+#include <vector>
+
+struct Env {
+    int reset();
+    bool is_terminal(int s);
+    std::tuple<int, double> step(int a);
+};
+
+void train(Env& env,
+           std::vector<std::vector<double>>& Q_table,
+           int max_episodes,
+           int num_actions,
+           double alpha,
+           double gamma,
+           double epsilon)
+{
+    thread_local std::mt19937 rng{std::random_device{}()};
+    std::uniform_real_distribution<double> dist01(0.0, 1.0);
+    std::uniform_int_distribution<int> distAction(0, num_actions - 1);
+
+    for (int episode = 0; episode < max_episodes; ++episode) {
+        int state = env.reset();
+        while (!env.is_terminal(state)) {
+            int action;
+            if (dist01(rng) < epsilon) {
+                action = distAction(rng);                 // explore
+            } else {
+                auto& qs = Q_table[state];
+                action = std::distance(qs.begin(),
+                                       std::max_element(qs.begin(), qs.end())); // exploit
+            }
+
+            auto [next_state, reward] = env.step(action);
+            double max_next = *std::max_element(Q_table[next_state].begin(),
+                                                Q_table[next_state].end());
+            double& q = Q_table[state][action];
+            q += alpha * (reward + gamma * max_next - q); // Q-learning update
+            state = next_state;
+        }
+    }
+}
