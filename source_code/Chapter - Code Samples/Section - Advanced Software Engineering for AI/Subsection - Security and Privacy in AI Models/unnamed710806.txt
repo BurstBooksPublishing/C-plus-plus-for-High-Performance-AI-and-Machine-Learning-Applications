@@ -1,0 +1,127 @@
+#include <cmath>
+#include <iostream>
+#include <random>
+#include <stdexcept>
+#include <vector>
+
+namespace {
+
+double sigmoid(double x) noexcept { return 1.0 / (1.0 + std::exp(-x)); }
+
+double sigmoid_derivative(double x) noexcept { return x * (1.0 - x); }
+
+class NeuralNetwork {
+public:
+    NeuralNetwork(std::size_t input_size,
+                  std::size_t hidden_size,
+                  std::size_t output_size,
+                  double lr,
+                  unsigned seed = std::random_device{}())
+        : in_(input_size), hid_(hidden_size), out_(output_size), lr_(lr) {
+        if (lr <= 0.0)
+            throw std::invalid_argument("learning rate must be positive");
+
+        std::mt19937 gen(seed);
+        std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+        w1_.assign(hid_ * in_, 0.0);
+        w2_.assign(out_ * hid_, 0.0);
+        b1_.assign(hid_, 0.0);
+        b2_.assign(out_, 0.0);
+
+        for (double& v : w1_) v = dist(gen);
+        for (double& v : w2_) v = dist(gen);
+        for (double& v : b1_) v = dist(gen);
+        for (double& v : b2_) v = dist(gen);
+    }
+
+    std::vector<double> forward(const std::vector<double>& input) const {
+        if (input.size() != in_)
+            throw std::invalid_argument("input size mismatch");
+
+        std::vector<double> hidden(hid_);
+        for (std::size_t i = 0; i < hid_; ++i) {
+            double sum = b1_[i];
+            for (std::size_t j = 0; j < in_; ++j)
+                sum += input[j] * w1_[i * in_ + j];
+            hidden[i] = sigmoid(sum);
+        }
+
+        std::vector<double> output(out_);
+        for (std::size_t i = 0; i < out_; ++i) {
+            double sum = b2_[i];
+            for (std::size_t j = 0; j < hid_; ++j)
+                sum += hidden[j] * w2_[i * hid_ + j];
+            output[i] = sigmoid(sum);
+        }
+        return output;
+    }
+
+    void train(const std::vector<double>& input,
+               const std::vector<double>& target) {
+        if (input.size() != in_ || target.size() != out_)
+            throw std::invalid_argument("size mismatch");
+
+        // forward
+        std::vector<double> hidden(hid_);
+        for (std::size_t i = 0; i < hid_; ++i) {
+            double sum = b1_[i];
+            for (std::size_t j = 0; j < in_; ++j)
+                sum += input[j] * w1_[i * in_ + j];
+            hidden[i] = sigmoid(sum);
+        }
+
+        std::vector<double> output(out_);
+        for (std::size_t i = 0; i < out_; ++i) {
+            double sum = b2_[i];
+            for (std::size_t j = 0; j < hid_; ++j)
+                sum += hidden[j] * w2_[i * hid_ + j];
+            output[i] = sigmoid(sum);
+        }
+
+        // backward
+        std::vector<double> delta_out(out_);
+        for (std::size_t i = 0; i < out_; ++i)
+            delta_out[i] = (target[i] - output[i]) * sigmoid_derivative(output[i]);
+
+        std::vector<double> delta_hid(hid_);
+        for (std::size_t i = 0; i < hid_; ++i) {
+            double err = 0.0;
+            for (std::size_t j = 0; j < out_; ++j)
+                err += delta_out[j] * w2_[j * hid_ + i];
+            delta_hid[i] = err * sigmoid_derivative(hidden[i]);
+        }
+
+        // update
+        for (std::size_t i = 0; i < out_; ++i) {
+            for (std::size_t j = 0; j < hid_; ++j)
+                w2_[i * hid_ + j] += lr_ * delta_out[i] * hidden[j];
+            b2_[i] += lr_ * delta_out[i];
+        }
+
+        for (std::size_t i = 0; i < hid_; ++i) {
+            for (std::size_t j = 0; j < in_; ++j)
+                w1_[i * in_ + j] += lr_ * delta_hid[i] * input[j];
+            b1_[i] += lr_ * delta_hid[i];
+        }
+    }
+
+private:
+    std::size_t in_, hid_, out_;
+    double lr_;
+    std::vector<double> w1_, w2_, b1_, b2_;
+};
+
+} // namespace
+
+int main() {
+    NeuralNetwork nn(2, 3, 1, 0.1);
+
+    std::vector<double> input{0.5, 0.1};
+    std::vector<double> target{0.8};
+
+    for (int i = 0; i < 1000; ++i) nn.train(input, target);
+
+    auto output = nn.forward(input);
+    std::cout << "Output: " << output.front() << '\n';
+}
