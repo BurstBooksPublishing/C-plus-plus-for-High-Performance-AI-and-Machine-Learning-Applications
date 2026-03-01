@@ -1,0 +1,23 @@
+#include <vector>
+#include <cmath>          // std::sqrt, std::isfinite
+#include <limits>         // std::numeric_limits
+
+struct LidarPoint {
+    float x{}, y{}, z{};  // zero-initialize
+};
+
+void processLidarData(const std::vector<LidarPoint>& points)
+{
+    constexpr float maxRange = 200.0f;          // meters
+    constexpr float maxRange2 = maxRange * maxRange;
+
+    for (const auto& p : points) {
+        if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z))
+            continue;                           // ignore NaN/Inf
+
+        const float d2 = p.x * p.x + p.y * p.y + p.z * p.z;
+        if (d2 > maxRange2) continue;           // skip out-of-range returns
+
+        // TODO: real processing here
+    }
+}
