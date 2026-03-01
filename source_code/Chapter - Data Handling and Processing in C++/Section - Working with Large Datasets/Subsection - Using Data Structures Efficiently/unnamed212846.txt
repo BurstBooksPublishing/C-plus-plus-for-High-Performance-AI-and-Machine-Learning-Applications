@@ -1,0 +1,10 @@
+#include <cstddef>
+#include <new>
+
+struct alignas(64) AlignedData {
+    double values[8];
+    static void* operator new(std::size_t n) { return ::operator new(n, std::align_val_t(64)); }
+    static void* operator new[](std::size_t n) { return ::operator new[](n, std::align_val_t(64)); }
+    static void operator delete(void* p, std::size_t n) { ::operator delete(p, n, std::align_val_t(64)); }
+    static void operator delete[](void* p, std::size_t n) { ::operator delete[](p, n, std::align_val_t(64)); }
+};
