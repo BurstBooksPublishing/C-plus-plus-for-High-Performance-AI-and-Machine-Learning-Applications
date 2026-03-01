@@ -1,0 +1,18 @@
+#include <vector>
+#include <utility>
+
+std::pair<std::vector<int>, std::vector<int>>
+splitLabelsByFeature(const std::vector<std::vector<double>>& data,
+                     const std::vector<int>& labels,
+                     std::size_t featureIndex,
+                     double threshold)
+{
+    std::vector<int> left, right;
+    left.reserve(data.size());          // avoid reallocations
+    right.reserve(data.size());
+
+    for (std::size_t i = 0; i < data.size(); ++i) {
+        (data[i][featureIndex] < threshold ? left : right).push_back(labels[i]);
+    }
+    return {std::move(left), std::move(right)};
+}
