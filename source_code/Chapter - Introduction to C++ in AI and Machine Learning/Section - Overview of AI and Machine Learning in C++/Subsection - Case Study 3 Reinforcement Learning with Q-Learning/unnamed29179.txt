@@ -1,0 +1,19 @@
+#include <Eigen/Core>          // MatrixXf
+#include <stdexcept>           // std::invalid_argument
+
+void q_learning_update(Eigen::MatrixXf& Q,
+                       int state,
+                       int action,
+                       int next_state,
+                       float reward,
+                       float gamma,
+                       float alpha)
+{
+    if (state < 0 || state >= Q.rows() ||
+        next_state < 0 || next_state >= Q.rows() ||
+        action < 0 || action >= Q.cols())
+        throw std::invalid_argument("Index out of bounds");
+
+    const float max_next_Q = Q.row(next_state).maxCoeff();
+    Q(state, action) += alpha * (reward + gamma * max_next_Q - Q(state, action));
+}
