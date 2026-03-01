@@ -1,0 +1,40 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <cmath>
+#include <limits>
+#include <random>
+#include <chrono>
+
+// Example: compute π via Monte-Carlo integration (1M samples)
+// Replace with your actual algorithm; this is a minimal, fast, self-contained demo.
+
+static constexpr std::size_t SAMPLES = 1'000'000;
+
+double estimate_pi(std::size_t n) {
+    thread_local std::mt19937_64 rng{std::random_device{}()};
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+    std::size_t inside = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+        double x = dist(rng);
+        double y = dist(rng);
+        if (x * x + y * y <= 1.0) ++inside;
+    }
+    return 4.0 * static_cast<double>(inside) / static_cast<double>(n);
+}
+
+int main() {
+    auto t0 = std::chrono::steady_clock::now();
+    double pi = estimate_pi(SAMPLES);
+    auto t1 = std::chrono::steady_clock::now();
+
+    std::cout.precision(std::numeric_limits<double>::max_digits10);
+    std::cout << "π ≈ " << pi
+              << "  (error " << std::abs(pi - M_PI) << ")\n"
+              << "elapsed "
+              << std::chrono::duration<double, std::milli>(t1 - t0).count()
+              << " ms\n";
+    return 0;
+}
