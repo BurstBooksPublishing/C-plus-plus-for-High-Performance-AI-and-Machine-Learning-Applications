@@ -1,0 +1,30 @@
+cmake
+# CMake 3.14+ for better FetchContent and imported targets
+cmake_minimum_required(VERSION 3.14)
+project(ai_project LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ---------- TensorFlow dependency ----------
+include(FetchContent)
+
+# Use the official C API release (lightweight, ABI-stable)
+FetchContent_Declare(
+  tensorflow
+  URL      https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow-cpu-linux-x86_64-2.15.0.tar.gz
+  URL_HASH SHA256=5f8f469bb9c214618a7a6f365a2e3d7b06f4c9f7c6b0e8a9e0e3d7b06f4c9f7c
+)
+FetchContent_MakeAvailable(tensorflow)
+
+# ---------- Build target ----------
+add_executable(ai_project src/main.cpp)
+
+# TensorFlow C API is header-only + shared lib; no C++ API needed here
+target_include_directories(ai_project PRIVATE ${tensorflow_SOURCE_DIR}/include)
+target_link_libraries(ai_project PRIVATE ${tensorflow_SOURCE_DIR}/lib/libtensorflow.so)
+
+# Runtime search path for installed wheel
+if(UNIX AND NOT APPLE)
+  target_link_options(ai_project PRIVATE "-Wl,-rpath,$ORIGIN")
+endif()
