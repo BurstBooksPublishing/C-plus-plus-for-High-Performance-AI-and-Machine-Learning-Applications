@@ -1,0 +1,9 @@
+#include <Eigen/Dense>
+
+Eigen::MatrixXd A(2, 2);
+A << 1, 2,
+     2, 1;
+
+Eigen::EigenSolver<Eigen::MatrixXd> solver(A);
+Eigen::VectorXd eigenvalues = solver.eigenvalues().real();   // real parts only
+Eigen::MatrixXd eigenvectors = solver.eigenvectors().real(); // real parts only
