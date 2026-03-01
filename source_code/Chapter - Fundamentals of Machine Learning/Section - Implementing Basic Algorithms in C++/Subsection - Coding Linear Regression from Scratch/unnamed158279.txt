@@ -1,0 +1,25 @@
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+
+inline double dot(const std::vector<double>& a, const std::vector<double>& b) {
+    if (a.size() != b.size()) throw std::invalid_argument("Dimension mismatch");
+    double s = 0.0;
+    for (size_t i = 0; i < a.size(); ++i) s += a[i] * b[i];
+    return s;
+}
+
+double computeCost(const std::vector<std::vector<double>>& X,
+                   const std::vector<double>& y,
+                   const std::vector<double>& theta) {
+    const size_t m = X.size();
+    if (m == 0 || X[0].size() != theta.size() || y.size() != m)
+        throw std::invalid_argument("Input dimension mismatch");
+
+    double sum = 0.0;
+    for (size_t i = 0; i < m; ++i) {
+        const double err = dot(theta, X[i]) - y[i];
+        sum += err * err;
+    }
+    return sum / (2.0 * m);
+}
