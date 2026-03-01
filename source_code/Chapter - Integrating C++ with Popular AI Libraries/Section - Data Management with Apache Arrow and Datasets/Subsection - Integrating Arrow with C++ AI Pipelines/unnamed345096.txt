@@ -1,0 +1,28 @@
+#include <arrow/api.h>
+#include <arrow/dataset/api.h>
+#include <arrow/filesystem/api.h>
+#include <arrow/result.h>
+#include <memory>
+
+int main() {
+    // Connect to local filesystem
+    auto fs = std::make_shared<arrow::fs::LocalFileSystem>();
+
+    // Locate the target file
+    ARROW_ASSIGN_OR_RAISE(auto file_info, fs->GetFileInfo("data.parquet"));
+
+    // Build dataset from single Parquet file
+    auto factory = arrow::dataset::FileSystemDatasetFactory::Make(
+                       fs, {file_info}, arrow::dataset::ParquetFileFormat::MakeDefault(),
+                       arrow::dataset::FileSystemFactoryOptions{})
+                       .ValueOrDie();
+
+    ARROW_ASSIGN_OR_RAISE(auto dataset, factory->Finish());
+
+    // Scan entire dataset into an Arrow Table
+    ARROW_ASSIGN_OR_RAISE(auto scanner_builder, dataset->NewScan());
+    ARROW_ASSIGN_OR_RAISE(auto scanner, scanner_builder->Finish());
+    ARROW_ASSIGN_OR_RAISE(auto table, scanner->ToTable());
+
+    return 0;
+}
