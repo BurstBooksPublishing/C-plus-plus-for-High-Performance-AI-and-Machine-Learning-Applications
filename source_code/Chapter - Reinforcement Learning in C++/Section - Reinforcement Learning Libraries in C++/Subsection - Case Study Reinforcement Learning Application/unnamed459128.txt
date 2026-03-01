@@ -1,0 +1,42 @@
+#include <cstdlib>
+#include <iostream>
+#include <stdexcept>
+#include <omp.h>
+
+// Assume these headers exist and expose the RL interface
+#include <rl/Environment.hpp>
+#include <rl/QLearningAgent.hpp>
+
+int main() {
+    try {
+        rl::Environment env;
+        rl::QLearningAgent agent(env);
+
+        agent.setLearningRate(0.1);
+        agent.setDiscountFactor(0.9);
+        agent.setEpsilon(0.1);
+
+        const int episodes = 1000;
+
+        #pragma omp parallel for schedule(dynamic)
+        for (int episode = 0; episode < episodes; ++episode) {
+            rl::Environment localEnv = env.clone();          // thread-local copy
+            localEnv.reset();
+
+            while (!localEnv.isTerminal()) {
+                const auto state      = localEnv.getState();
+                const auto action     = agent.selectAction(state);
+                const auto reward     = localEnv.step(action);
+                const auto nextState  = localEnv.getNextState();
+
+                #pragma omp critical
+                agent.updateQValue(state, action, reward, nextState);
+            }
+        }
+
+        return EXIT_SUCCESS;
+    } catch (const std::exception& ex) {
+        std::cerr << "Fatal: " << ex.what() << '\n';
+        return EXIT_FAILURE;
+    }
+}
