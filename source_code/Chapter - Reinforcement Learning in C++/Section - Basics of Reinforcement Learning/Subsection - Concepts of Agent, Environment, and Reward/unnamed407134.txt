@@ -1,0 +1,26 @@
+#include <utility>
+
+class Environment {
+public:
+    using StepResult = std::pair<State, double>;
+
+    StepResult step(const Action& action) {
+        State next = transition(state, action);
+        double reward = calculateReward(state, action, next);
+        state = next;
+        return {next, reward};
+    }
+
+private:
+    State state;
+
+    State transition(const State& s, const Action& a) const {
+        // TODO: implement transition
+        return s;
+    }
+
+    double calculateReward(const State& s, const Action& a, const State& next) const {
+        // TODO: implement reward
+        return 0.0;
+    }
+};
