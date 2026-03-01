@@ -1,0 +1,14 @@
+#include <Eigen/Core>
+#include <random>
+
+Eigen::MatrixXd addLaplaceNoise(const Eigen::MatrixXd& data,
+                                double sensitivity,
+                                double epsilon)
+{
+    static thread_local std::mt19937 gen{std::random_device{}()};
+    std::laplace_distribution<double> laplace(0.0, sensitivity / epsilon);
+
+    Eigen::MatrixXd noisyData = data;
+    noisyData = noisyData.unaryExpr([&](double) { return laplace(gen); }) + data;
+    return noisyData;
+}
