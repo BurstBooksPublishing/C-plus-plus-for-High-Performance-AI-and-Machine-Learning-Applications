@@ -1,0 +1,22 @@
+#include <iostream>
+#include <Eigen/Dense>
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/public/session.h>
+
+int main() {
+    // Build a 2×2 matrix with Eigen
+    Eigen::MatrixXd m(2, 2);
+    m << 3,   -1,
+         2.5, 2.5 + -1;
+
+    // Create and verify a TensorFlow session
+    std::unique_ptr<tensorflow::Session> session(tensorflow::NewSession(tensorflow::SessionOptions()));
+    if (!session) {
+        std::cerr << "Failed to create TensorFlow session\n";
+        return 1;
+    }
+
+    // Additional TensorFlow operations go here
+
+    return 0;
+}
