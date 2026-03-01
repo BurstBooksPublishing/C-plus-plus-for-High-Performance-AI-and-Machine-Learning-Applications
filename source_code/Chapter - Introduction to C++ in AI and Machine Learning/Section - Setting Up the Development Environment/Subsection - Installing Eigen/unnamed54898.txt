@@ -1,0 +1,22 @@
+bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+EIGEN_VER=3.4.0
+EIGEN_TARBALL="eigen-${EIGEN_VER}.tar.gz"
+EIGEN_URL="https://gitlab.com/libeigen/eigen/-/archive/${EIGEN_VER}/${EIGEN_TARBALL}"
+
+# Download and verify tarball
+curl -fsSL "${EIGEN_URL}" -o "${EIGEN_TARBALL}"
+echo "e5c3a4de92c5b7c7ab81df7d9b0add7b2b9b2a33  ${EIGEN_TARBALL}" | sha1sum -c -
+
+# Extract only the Eigen header tree
+tar -xzf "${EIGEN_TARBALL}" --strip-components=1 \
+    --wildcards "*/Eigen" "*/unsupported"
+
+# Install headers atomically
+sudo rsync -a Eigen/ /usr/local/include/Eigen/
+sudo rsync -a unsupported/ /usr/local/include/unsupported/
+
+# Cleanup
+rm -rf Eigen unsupported "${EIGEN_TARBALL}"
