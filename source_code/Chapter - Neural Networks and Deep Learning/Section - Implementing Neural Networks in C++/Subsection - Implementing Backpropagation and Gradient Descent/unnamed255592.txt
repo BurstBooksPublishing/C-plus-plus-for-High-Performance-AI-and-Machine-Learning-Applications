@@ -1,0 +1,33 @@
+#include <vector>
+#include <random>
+
+class FullyConnectedLayer {
+public:
+    using Matrix = std::vector<std::vector<double>>;
+    using Vector  = std::vector<double>;
+
+    Matrix weights;
+    Vector biases;
+    Vector output;
+
+    FullyConnectedLayer(std::size_t input_size, std::size_t output_size)
+        : weights(input_size, Vector(output_size)),
+          biases(output_size),
+          output(output_size) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+        for (auto& row : weights)
+            for (auto& w : row) w = dist(gen);
+        for (auto& b : biases) b = dist(gen);
+    }
+
+    Vector forward(const Vector& input) const {
+        Vector result(biases);
+        for (std::size_t i = 0; i < weights.size(); ++i)
+            for (std::size_t j = 0; j < weights[i].size(); ++j)
+                result[j] += input[i] * weights[i][j];
+        return result;
+    }
+};
