@@ -1,0 +1,4 @@
+#include <vector>   // std::vector
+#include <cstddef>  // std::size_t
+
+std::vector<double> weights(1000, 0.0); // contiguous, zero-initialized
