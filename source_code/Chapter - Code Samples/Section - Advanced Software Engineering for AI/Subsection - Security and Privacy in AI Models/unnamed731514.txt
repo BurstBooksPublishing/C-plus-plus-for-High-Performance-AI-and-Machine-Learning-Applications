@@ -1,0 +1,73 @@
+#include <opencv2/opencv.hpp>
+#include <opencv2/dnn.hpp>
+#include <iostream>
+#include <fstream>
+
+int main(int argc, char** argv) {
+    const std::string keys =
+        "{help h usage ? |           | print this message   }"
+        "{model          |model.pb   | path to TensorFlow .pb model}"
+        "{config         |config.pbtxt| path to .pbtxt config}"
+        "{image          |image.jpg  | path to input image}"
+        "{labels         |           | path to optional class names file}"
+        "{backend        |0          | 0=default, 1=Halide, 2=Intel's Inference Engine}"
+        "{target         |0          | 0=CPU, 1=OpenCL, 2=OpenCL fp16, 3=VPU}";
+    cv::CommandLineParser parser(argc, argv, keys);
+    if (parser.has("help")) {
+        parser.printMessage();
+        return 0;
+    }
+
+    std::string model   = parser.get<std::string>("model");
+    std::string config  = parser.get<std::string>("config");
+    std::string image   = parser.get<std::string>("image");
+    std::string labels  = parser.get<std::string>("labels");
+    int backendId       = parser.get<int>("backend");
+    int targetId        = parser.get<int>("target");
+
+    if (!parser.check()) {
+        parser.printErrors();
+        return 1;
+    }
+
+    cv::dnn::Net net = cv::dnn::readNetFromTensorflow(model, config);
+    if (net.empty()) {
+        std::cerr << "Cannot load network from: " << model << std::endl;
+        return 1;
+    }
+    net.setPreferableBackend(backendId);
+    net.setPreferableTarget(targetId);
+
+    cv::Mat img = cv::imread(image);
+    if (img.empty()) {
+        std::cerr << "Cannot read image: " << image << std::endl;
+        return 1;
+    }
+
+    cv::Mat blob = cv::dnn::blobFromImage(img, 1.0, cv::Size(224, 224),
+                                          cv::Scalar(104, 117, 123), false, false);
+    net.setInput(blob);
+    cv::Mat prob = net.forward();
+
+    cv::Point classIdPoint;
+    double confidence;
+    cv::minMaxLoc(prob.reshape(1, 1), nullptr, &confidence, nullptr, &classIdPoint);
+    int classId = classIdPoint.x;
+
+    std::cout << "Predicted class: " << classId << " (confidence: " << confidence << ")" << std::endl;
+
+    if (!labels.empty()) {
+        std::ifstream ifs(labels);
+        if (ifs.is_open()) {
+            std::string line;
+            for (int i = 0; i <= classId && std::getline(ifs, line); ++i) {
+                if (i == classId) {
+                    std::cout << "Label: " << line << std::endl;
+                    break;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
