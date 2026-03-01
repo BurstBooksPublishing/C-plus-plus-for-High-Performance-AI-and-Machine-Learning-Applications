@@ -1,0 +1,26 @@
+#include <iostream>
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+
+double mse(const std::vector<double>& pred,
+           const std::vector<double>& target)
+{
+    if (pred.size() != target.size())
+        throw std::invalid_argument("Size mismatch");
+
+    double sum = 0.0;
+    for (size_t i = 0; i < pred.size(); ++i) {
+        double d = pred[i] - target[i];
+        sum += d * d;
+    }
+    return sum / pred.size();
+}
+
+int main()
+{
+    const std::vector<double> pred{2.5, 0.0, 2.1, 8.9};
+    const std::vector<double> target{3.0, -0.5, 2.0, 9.0};
+
+    std::cout << "MSE: " << mse(pred, target) << '\n';
+}
