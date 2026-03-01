@@ -1,0 +1,14 @@
+#include <gym/gym.hpp>
+#include <memory>
+
+int main() {
+    auto env = gym::make("MountainCar-v0");          // create environment
+    env->reset();                                    // ensure initial state
+
+    for (int i = 0; i < 1000; ++i) {
+        auto action = env->action_space()->sample(); // random action
+        auto [obs, reward, done, info] = env->step(action);
+        if (done) break;
+    }
+    return 0;
+}
