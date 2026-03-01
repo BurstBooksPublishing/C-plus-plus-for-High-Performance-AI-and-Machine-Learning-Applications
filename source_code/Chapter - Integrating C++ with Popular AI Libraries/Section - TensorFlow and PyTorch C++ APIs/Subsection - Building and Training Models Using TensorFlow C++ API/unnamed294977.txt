@@ -1,0 +1,58 @@
+#include <tensorflow/core/framework/tensor.h>
+#include <tensorflow/core/framework/graph.pb.h>
+#include <tensorflow/core/client/client_session.h>
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/cc/ops/standard_ops.h>
+#include <tensorflow/cc/ops/const_op.h>
+#include <tensorflow/cc/ops/math_ops.h>
+#include <tensorflow/cc/ops/training_ops.h>
+#include <iostream>
+
+int main() {
+    using namespace tensorflow;
+    using namespace tensorflow::ops;
+
+    Scope root = Scope::NewRootScope();
+
+    // Placeholders for training data
+    auto X = Placeholder(root, DT_FLOAT);
+    auto Y = Placeholder(root, DT_FLOAT);
+
+    // Variable for slope (initialized to 0)
+    auto W = Variable(root, {}, DT_FLOAT);
+    auto assign_w = Assign(root, W, Cast(root, 0.f, DT_FLOAT));
+
+    // Linear model: y_pred = x * w
+    auto y_pred = Multiply(root, X, W);
+
+    // Mean-squared-error loss
+    auto loss = ReduceMean(root, Square(root, Subtract(root, y_pred, Y)), {0});
+
+    // Gradient-descent optimizer (learning rate 0.01)
+    auto learning_rate = Cast(root, 0.01f, DT_FLOAT);
+    auto grads = AddSymbolicGradients(root, {loss}, {W});
+    auto apply_grad = ApplyGradientDescent(root, W, learning_rate, {grads[0]});
+
+    ClientSession session(root);
+    TF_CHECK_OK(session.Run({assign_w}, nullptr));  // Initialize variable
+
+    // Training data
+    Tensor x_data(DT_FLOAT, {4});
+    Tensor y_data(DT_FLOAT, {4});
+    auto x_flat = x_data.flat<float>();
+    auto y_flat = y_data.flat<float>();
+    x_flat(0) = 1; x_flat(1) = 2; x_flat(2) = 3; x_flat(3) = 4;
+    y_flat(0) = 2; y_flat(1) = 4; y_flat(2) = 6; y_flat(3) = 8;
+
+    // Training loop
+    for (int i = 0; i < 1000; ++i) {
+        TF_CHECK_OK(session.Run({{X, x_data}, {Y, y_data}}, {loss}, nullptr));
+        TF_CHECK_OK(session.Run({{X, x_data}, {Y, y_data}}, {apply_grad}, nullptr));
+        if (i % 100 == 0) {
+            std::vector<Tensor> outputs;
+            TF_CHECK_OK(session.Run({{X, x_data}, {Y, y_data}}, {loss}, &outputs));
+            std::cout << "Loss at step " << i << ": " << outputs[0].scalar<float>() << std::endl;
+        }
+    }
+    return 0;
+}
