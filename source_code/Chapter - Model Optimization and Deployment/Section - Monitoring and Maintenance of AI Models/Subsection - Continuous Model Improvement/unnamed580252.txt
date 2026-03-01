@@ -1,0 +1,28 @@
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+#include "tensorflow/lite/interpreter.h"
+#include "tensorflow/lite/model.h"
+#include "tensorflow/lite/kernels/register.h"
+
+std::unique_ptr<tflite::Interpreter> load_model(const std::string& model_path) {
+    auto model = tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
+    if (!model) {
+        throw std::runtime_error("Failed to load model from " + model_path);
+    }
+
+    tflite::ops::builtin::BuiltinOpResolver resolver;
+    std::unique_ptr<tflite::Interpreter> interpreter;
+    tflite::InterpreterBuilder builder(*model, resolver);
+
+    if (builder(&interpreter) != kTfLiteOk || !interpreter) {
+        throw std::runtime_error("Failed to build interpreter");
+    }
+
+    if (interpreter->AllocateTensors() != kTfLiteOk) {
+        throw std::runtime_error("Failed to allocate tensors");
+    }
+
+    return interpreter;
+}
