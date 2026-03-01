@@ -1,0 +1,22 @@
+#include <Eigen/Core>
+#include <vector>
+#include <tuple>
+
+// Minimal DQN loss: MSE between predicted Q-values and Bellman targets
+double compute_loss(const Eigen::VectorXd& predicted, const Eigen::VectorXd& target) {
+    return (predicted - target).array().square().mean();
+}
+
+// Performs one batch of Q-learning updates (Bellman backup + MSE loss)
+void update_network(NeuralNetwork& network,
+                    const std::vector<std::tuple<Eigen::VectorXd,int,double,Eigen::VectorXd>>& batch,
+                    double gamma) {
+    for (const auto& [state, action, reward, next_state] : batch) {
+        Eigen::VectorXd q = network.forward(state);
+        Eigen::VectorXd target = q;
+        double max_next_q = network.forward(next_state).maxCoeff();
+        target[action] = reward + gamma * max_next_q;
+        double loss = compute_loss(q, target);
+        network.backward(loss);   // Assumes backward() performs back-prop and optimizer step
+    }
+}
