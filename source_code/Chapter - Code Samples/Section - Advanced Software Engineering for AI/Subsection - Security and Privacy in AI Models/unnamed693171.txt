@@ -1,0 +1,63 @@
+#include 
+#include 
+#include 
+#include 
+
+// Custom data structure to represent a data point
+struct DataPoint {
+    std::vector features; // Feature vector
+    std::string label;            // Label or class
+};
+
+// Custom dataset class to manage a collection of DataPoint objects
+class Dataset {
+private:
+    std::vector data;  // Vector to store data points
+    std::unordered_map labelCounts; // Count of each label
+
+public:
+    // Add a data point to the dataset
+    void addDataPoint(const DataPoint& point) {
+        data.push_back(point);
+        labelCounts[point.label]++;
+    }
+
+    // Get the total number of data points
+    size_t size() const {
+        return data.size();
+    }
+
+    // Get the count of a specific label
+    int getLabelCount(const std::string& label) const {
+        auto it = labelCounts.find(label);
+        if (it != labelCounts.end()) {
+            return it->second;
+        }
+        return 0;
+    }
+
+    // Print dataset summary
+    void printSummary() const {
+        std::cout << "Dataset Summary:\n";
+        std::cout << "Total Data Points: " << size() << "\n";
+        for (const auto& pair : labelCounts) {
+            std::cout << "Label: " << pair.first << ", Count: " << pair.second << "\n";
+        }
+    }
+};
+
+int main() {
+    // Create a dataset
+    Dataset dataset;
+
+    // Add some data points
+    dataset.addDataPoint({{5.1, 3.5, 1.4, 0.2}, "Iris-setosa"});
+    dataset.addDataPoint({{6.2, 2.8, 4.8, 1.8}, "Iris-versicolor"});
+    dataset.addDataPoint({{7.3, 2.9, 6.3, 1.8}, "Iris-virginica"});
+    dataset.addDataPoint({{5.0, 3.4, 1.5, 0.2}, "Iris-setosa"});
+
+    // Print dataset summary
+    dataset.printSummary();
+
+    return 0;
+}
