@@ -1,0 +1,26 @@
+#include <omp.h>
+#include <vector>
+#include <numeric>
+#include <iostream>
+
+// Compute dot-product in parallel; returns 0 if sizes mismatch
+double dot(const std::vector<double>& a, const std::vector<double>& b)
+{
+    if (a.size() != b.size()) return 0.0;
+
+    double sum = 0.0;
+    #pragma omp parallel for reduction(+:sum)
+    for (std::size_t i = 0; i < a.size(); ++i)
+        sum += a[i] * b[i];
+
+    return sum;
+}
+
+int main()
+{
+    constexpr std::size_t N = 1 << 20;
+    std::vector<double> x(N, 1.0), y(N, 2.0);
+
+    std::cout << dot(x, y) << '\n';
+    return 0;
+}
