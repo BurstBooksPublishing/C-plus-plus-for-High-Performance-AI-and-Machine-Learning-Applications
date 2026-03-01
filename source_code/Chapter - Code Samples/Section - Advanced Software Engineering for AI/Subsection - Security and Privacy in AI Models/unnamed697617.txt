@@ -1,0 +1,67 @@
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+#include <vector>
+#include <iostream>
+#include <numeric>
+#include <atomic>
+#include <chrono>
+
+template <typename T>
+class ConcurrentQueue {
+public:
+    void push(T value) {
+        {
+            std::lock_guard<std::mutex> lock(mtx_);
+            queue_.push(std::move(value));
+        }
+        cv_.notify_one();
+    }
+
+    bool pop(T& value) {
+        std::unique_lock<std::mutex> lock(mtx_);
+        cv_.wait(lock, [this] { return !queue_.empty() || done_; });
+        if (queue_.empty()) return false;
+        value = std::move(queue_.front());
+        queue_.pop();
+        return true;
+    }
+
+    void shutdown() {
+        {
+            std::lock_guard<std::mutex> lock(mtx_);
+            done_ = true;
+        }
+        cv_.notify_all();
+    }
+
+private:
+    std::queue<T> queue_;
+    std::mutex mtx_;
+    std::condition_variable cv_;
+    bool done_{false};
+};
+
+void processData(unsigned id, ConcurrentQueue<std::vector<int>>& q, std::atomic<bool>& done) {
+    std::vector<int> data;
+    while (q.pop(data)) {
+        int sum = std::accumulate(data.begin(), data.end(), 0);
+        std::cout << "Thread " << id << " sum=" << sum << '\n';
+    }
+}
+
+int main() {
+    ConcurrentQueue<std::vector<int>> queue;
+    std::vector<std::thread> workers;
+    std::atomic<bool> done{false};
+
+    for (unsigned i = 0; i < 4; ++i)
+        workers.emplace_back(processData, i, std::ref(queue), std::ref(done));
+
+    for (int i = 0; i < 10; ++i)
+        queue.push({i, i + 1, i + 2, i + 3});
+
+    queue.shutdown();
+    for (auto& t : workers) t.join();
+}
