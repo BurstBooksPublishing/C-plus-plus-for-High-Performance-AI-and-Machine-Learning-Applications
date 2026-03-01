@@ -1,0 +1,38 @@
+#include <cstdlib>
+#include <iostream>
+#include <memory>
+
+#include "tensorflow/lite/interpreter.h"
+#include "tensorflow/lite/model.h"
+#include "tensorflow/lite/kernels/register.h"
+
+int main() {
+    // Load model once; abort on failure
+    auto model = tflite::FlatBufferModel::BuildFromFile("model.tflite");
+    if (!model) {
+        std::cerr << "Failed to load model\n";
+        return EXIT_FAILURE;
+    }
+
+    // Build interpreter with default ops
+    tflite::ops::builtin::BuiltinOpResolver resolver;
+    std::unique_ptr<tflite::Interpreter> interpreter;
+    if (tflite::InterpreterBuilder(*model, resolver)(&interpreter) != kTfLiteOk || !interpreter) {
+        std::cerr << "Failed to build interpreter\n";
+        return EXIT_FAILURE;
+    }
+
+    // Allocate tensors before inference
+    if (interpreter->AllocateTensors() != kTfLiteOk) {
+        std::cerr << "Failed to allocate tensors\n";
+        return EXIT_FAILURE;
+    }
+
+    // Run inference
+    if (interpreter->Invoke() != kTfLiteOk) {
+        std::cerr << "Inference failed\n";
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
