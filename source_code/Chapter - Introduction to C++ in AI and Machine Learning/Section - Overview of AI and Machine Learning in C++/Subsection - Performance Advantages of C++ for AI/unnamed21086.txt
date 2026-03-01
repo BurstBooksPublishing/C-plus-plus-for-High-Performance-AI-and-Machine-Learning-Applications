@@ -1,0 +1,11 @@
+#include <omp.h>
+#include <vector>
+
+void parallelWork(std::size_t n) {
+    std::vector<int> data(n); // ensure thread-safe, independent storage
+
+#pragma omp parallel for schedule(static) // keep iterations local to each thread
+    for (std::size_t i = 0; i < n; ++i) {
+        data[i] = static_cast<int>(i * 2); // example computation
+    }
+}
