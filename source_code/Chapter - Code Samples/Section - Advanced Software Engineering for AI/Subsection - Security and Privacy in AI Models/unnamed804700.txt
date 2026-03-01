@@ -1,0 +1,31 @@
+#include <memory>
+#include <string>
+
+#include "tensorflow/cc/saved_model/loader.h"
+#include "tensorflow/cc/saved_model/tag_constants.h"
+#include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/logging.h"
+#include "tensorflow/core/protobuf/meta_graph.pb.h"
+
+// Save a trained graph and variables to `export_dir`.
+void SaveModel(const std::string& export_dir,
+               const tensorflow::MetaGraphDef& meta_graph_def,
+               tensorflow::Session* session) {
+  const tensorflow::Status st =
+      tensorflow::SaveModel({}, {}, export_dir, meta_graph_def, session);
+  if (!st.ok()) LOG(ERROR) << "SaveModel failed: " << st;
+}
+
+// Load a SavedModel and return the bundle; empty bundle on error.
+std::unique_ptr<tensorflow::SavedModelBundle> LoadModel(
+    const std::string& model_path) {
+  auto bundle = std::make_unique<tensorflow::SavedModelBundle>();
+  const tensorflow::Status st = tensorflow::LoadSavedModel(
+      {}, {}, model_path, {tensorflow::kSavedModelTagServe}, bundle.get());
+  if (!st.ok()) {
+    LOG(ERROR) << "LoadSavedModel failed: " << st;
+    return nullptr;
+  }
+  LOG(INFO) << "Model loaded from " << model_path;
+  return bundle;
+}
