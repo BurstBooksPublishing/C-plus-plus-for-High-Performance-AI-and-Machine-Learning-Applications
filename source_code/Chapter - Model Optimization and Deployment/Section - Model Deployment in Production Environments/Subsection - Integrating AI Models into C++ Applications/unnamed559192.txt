@@ -1,0 +1,20 @@
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+class Model { public: virtual ~Model() = default; };
+class OnnxModel : public Model {};
+class TensorrtModel : public Model {};
+
+class ModelFactory {
+public:
+    static std::unique_ptr<Model> createModel(const std::string& model_type) {
+        if (model_type == "onnx") {
+            return std::make_unique<OnnxModel>();
+        }
+        if (model_type == "tensorrt") {
+            return std::make_unique<TensorrtModel>();
+        }
+        throw std::invalid_argument("Unsupported model type: " + model_type);
+    }
+};
