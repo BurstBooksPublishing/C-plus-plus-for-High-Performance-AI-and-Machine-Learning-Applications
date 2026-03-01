@@ -1,0 +1,27 @@
+#include <onnxruntime_cxx_api.h>   // Ort::Env, Ort::Session, Ort::SessionOptions
+#include <stdexcept>               // std::runtime_error
+#include <string>                  // std::string
+
+namespace {
+// RAII wrapper: initializes ONNX Runtime once, tears down on exit
+struct OnnxRuntime {
+    Ort::Env env{ORT_LOGGING_LEVEL_WARNING, "SentimentAnalysis"};
+    Ort::SessionOptions MakeSessionOptions() {
+        Ort::SessionOptions opts;
+        opts.SetIntraOpNumThreads(1);          // keep deterministic; tune if needed
+        opts.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+        return opts;
+    }
+    Ort::SessionOptions sessionOptions{MakeSessionOptions()};
+};
+
+// Global singleton; thread-safe since C++11 dynamic initialization
+const OnnxRuntime g_ort;
+
+} // namespace
+
+// Factory: build a session for the given model path
+// Throws on failure so callers can handle errors explicitly
+Ort::Session CreateSentimentSession(const std::string& modelPath) {
+    return Ort::Session{g_ort.env, modelPath.c_str(), g_ort.sessionOptions};
+}
