@@ -1,0 +1,27 @@
+#include <torch/torch.h>
+#include <iostream>
+
+int main() {
+    // Ensure the program fails fast if CUDA is requested but not available.
+    if (torch::cuda::is_available()) {
+        std::cout << "CUDA available! Training on GPU." << std::endl;
+    } else {
+        std::cout << "Training on CPU." << std::endl;
+    }
+
+    // Create a simple 2-layer MLP on the detected device.
+    auto device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
+    torch::nn::Sequential net{
+        torch::nn::Linear(784, 128),
+        torch::nn::ReLU(),
+        torch::nn::Linear(128, 10)
+    };
+    net->to(device);
+
+    // Dummy input: 64 MNIST-like images.
+    auto input = torch::randn({64, 784}).to(device);
+    auto output = net->forward(input);
+
+    std::cout << "Output shape: " << output.sizes() << std::endl;
+    return 0;
+}
