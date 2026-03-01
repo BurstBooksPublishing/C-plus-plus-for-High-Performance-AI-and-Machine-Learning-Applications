@@ -1,0 +1,58 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <numeric>
+#include <random>
+#include <vector>
+
+std::vector<double> softmax(const std::vector<double>& logits) {
+    std::vector<double> probabilities(logits.size());
+    double max_logit = *std::max_element(logits.begin(), logits.end());
+    double sum_exp = 0.0;
+
+    for (size_t i = 0; i < logits.size(); ++i) {
+        probabilities[i] = std::exp(logits[i] - max_logit);
+        sum_exp += probabilities[i];
+    }
+
+    for (double& prob : probabilities) {
+        prob /= sum_exp;
+    }
+
+    return probabilities;
+}
+
+int sample_action(const std::vector<double>& probabilities, std::mt19937& gen) {
+    std::discrete_distribution<> dist(probabilities.begin(), probabilities.end());
+    return dist(gen);
+}
+
+void update_policy(std::vector<double>& logits, int action, double reward, double learning_rate) {
+    std::vector<double> probabilities = softmax(logits);
+    for (size_t i = 0; i < logits.size(); ++i) {
+        if (i == action) {
+            logits[i] += learning_rate * reward * (1 - probabilities[i]);
+        } else {
+            logits[i] -= learning_rate * reward * probabilities[i];
+        }
+    }
+}
+
+int main() {
+    std::vector<double> logits = {1.0, 1.0};
+    double learning_rate = 0.1;
+    int num_episodes = 1000;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    for (int episode = 0; episode < num_episodes; ++episode) {
+        std::vector<double> probabilities = softmax(logits);
+        int action = sample_action(probabilities, gen);
+        double reward = (action == 0) ? 1.0 : -1.0;
+        update_policy(logits, action, reward, learning_rate);
+        std::cout << "Episode " << episode << ": Logits = ["
+                  << logits[0] << ", " << logits[1] << "]\n";
+    }
+
+    return 0;
+}
