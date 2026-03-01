@@ -1,0 +1,16 @@
+bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# LibTorch 2.0.0 CPU, C++11 ABI, shared libraries + headers
+LIBTORCH_URL="https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.0.0%2Bcpu.zip"
+ARCHIVE="libtorch.zip"
+DEST_DIR="libtorch"
+
+# Download once, resume if partial
+wget -c -O "${ARCHIVE}" "${LIBTORCH_URL}"
+
+# Extract to a clean directory
+rm -rf "${DEST_DIR}"
+unzip -q "${ARCHIVE}" -d .
+mv libtorch-* "${DEST_DIR}"
