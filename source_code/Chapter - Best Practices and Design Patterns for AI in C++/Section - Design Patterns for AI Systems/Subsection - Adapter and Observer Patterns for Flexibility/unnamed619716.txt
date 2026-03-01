@@ -1,0 +1,78 @@
+#include <memory>
+#include <string>
+#include <vector>
+
+// Observer pattern -----------------------------------------------------------
+class Subject;
+
+class Observer {
+public:
+    virtual ~Observer() = default;
+    virtual void update(Subject&) = 0;
+};
+
+class Subject {
+public:
+    virtual ~Subject() = default;
+    void attach(std::shared_ptr<Observer> o) { observers.push_back(o); }
+    void detach(std::shared_ptr<Observer> o) { observers.erase(
+        std::remove(observers.begin(), observers.end(), o), observers.end()); }
+
+protected:
+    void notify() { for (auto& o : observers) o->update(*this); }
+private:
+    std::vector<std::shared_ptr<Observer>> observers;
+};
+
+// Data layer -----------------------------------------------------------------
+class LegacyDataSource {
+public:
+    std::vector<double> getData() const { return {1.0, 2.0, 3.0}; }
+};
+
+class DataSource {
+public:
+    virtual ~DataSource() = default;
+    virtual std::vector<double> fetchData() = 0;
+};
+
+class SpecificDataSourceAdapter : public DataSource {
+public:
+    std::vector<double> fetchData() override { return legacy.getData(); }
+private:
+    LegacyDataSource legacy;
+};
+
+// Application layer ----------------------------------------------------------
+class DataSubject : public Subject {
+public:
+    void setData(std::vector<double> d) { data = std::move(d); notify(); }
+    const std::vector<double>& getData() const noexcept { return data; }
+private:
+    std::vector<double> data;
+};
+
+class MLModel {
+public:
+    void setData(const std::vector<double>& d) { /* train */ (void)d; }
+};
+
+class ModelTrainer : public Observer {
+public:
+    explicit ModelTrainer(DataSubject& s) : subject(s) {}
+    void update(Subject&) override {
+        model.setData(subject.getData());
+    }
+private:
+    DataSubject& subject;
+    MLModel model;
+};
+
+// Usage ----------------------------------------------------------------------
+int main() {
+    SpecificDataSourceAdapter adapter;
+    DataSubject subject;
+    auto trainer = std::make_shared<ModelTrainer>(subject);
+    subject.attach(trainer);
+    subject.setData(adapter.fetchData());
+}
