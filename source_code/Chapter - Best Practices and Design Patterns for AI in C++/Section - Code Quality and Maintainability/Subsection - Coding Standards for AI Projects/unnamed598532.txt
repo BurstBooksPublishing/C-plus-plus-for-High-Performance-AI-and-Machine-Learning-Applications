@@ -1,0 +1,32 @@
+#include <vector>
+#include <stdexcept>
+#include <memory>
+
+class LearningStrategy {
+public:
+    virtual ~LearningStrategy() = default;
+    virtual void train(const std::vector<std::vector<double>>& data,
+                       const std::vector<double>& labels) = 0;
+    virtual std::vector<double> predict(const std::vector<std::vector<double>>& input) const = 0;
+};
+
+class LinearRegression final : public LearningStrategy {
+public:
+    void train(const std::vector<std::vector<double>>& data,
+               const std::vector<double>& labels) override;
+    std::vector<double> predict(const std::vector<std::vector<double>>& input) const override;
+
+private:
+    std::vector<double> weights_;
+};
+
+class DecisionTree final : public LearningStrategy {
+public:
+    void train(const std::vector<std::vector<double>>& data,
+               const std::vector<double>& labels) override;
+    std::vector<double> predict(const std::vector<std::vector<double>>& input) const override;
+
+private:
+    struct Node;
+    std::unique_ptr<Node> root_;
+};
