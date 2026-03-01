@@ -1,0 +1,9 @@
+#include <stdexcept>
+
+constexpr int factorial(int n) {
+    return (n < 0) ? throw std::invalid_argument("Negative input")
+                   : (n <= 1) ? 1
+                              : n * factorial(n - 1);
+}
+
+constexpr int fact_5 = factorial(5);  // Compile-time evaluation
