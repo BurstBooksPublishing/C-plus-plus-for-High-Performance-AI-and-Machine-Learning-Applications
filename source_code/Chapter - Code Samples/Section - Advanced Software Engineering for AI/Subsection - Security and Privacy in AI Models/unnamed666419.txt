@@ -1,0 +1,37 @@
+#include <algorithm>
+#include <iostream>
+#include <random>
+#include <utility>
+#include <vector>
+
+using Sample = std::vector<double>;
+using Dataset = std::vector<Sample>;
+
+std::pair<Dataset, Dataset>
+splitDataset(const Dataset& dataset, double trainRatio, unsigned seed = std::random_device{}())
+{
+    if (trainRatio <= 0.0 || trainRatio >= 1.0)
+        throw std::invalid_argument("trainRatio must be in (0,1)");
+
+    Dataset shuffled = dataset;
+    std::mt19937 gen(seed);
+    std::shuffle(shuffled.begin(), shuffled.end(), gen);
+
+    const size_t split = static_cast<size_t>(shuffled.size() * trainRatio);
+    return { Dataset(shuffled.begin(), shuffled.begin() + split),
+             Dataset(shuffled.begin() + split, shuffled.end()) };
+}
+
+int main()
+{
+    Dataset dataset = {
+        {1.0, 2.0}, {2.0, 3.0}, {3.0, 4.0}, {4.0, 5.0},
+        {5.0, 6.0}, {6.0, 7.0}, {7.0, 8.0}, {8.0, 9.0}
+    };
+
+    auto [trainSet, testSet] = splitDataset(dataset, 0.7);
+
+    for (const auto& s : trainSet) std::cout << '[' << s[0] << ',' << s[1] << "]\n";
+    std::cout << "---\n";
+    for (const auto& s : testSet)  std::cout << '[' << s[0] << ',' << s[1] << "]\n";
+}
