@@ -1,0 +1,46 @@
+#include <cassert>
+#include <memory>
+#include <string>
+#include <vector>
+
+class DataLoader {
+public:
+    std::vector<double> load(const std::string& path) const {
+        // Stub: replace with actual file I/O
+        return {};
+    }
+};
+
+class Preprocessor {
+public:
+    std::vector<double> process(const std::vector<double>& raw) const {
+        // Stub: replace with real preprocessing logic
+        return raw;
+    }
+};
+
+class Model {
+public:
+    void train(const std::vector<double>& data) {
+        // Stub: replace with actual training implementation
+        (void)data;
+    }
+
+    std::vector<double> predict(const std::vector<double>& data) const {
+        // Stub: replace with real inference
+        return std::vector<double>(data.size(), 0.0);
+    }
+};
+
+void test_pipeline() {
+    DataLoader loader;
+    Preprocessor preprocessor;
+    Model model;
+
+    auto data = loader.load("data.csv");
+    auto processed_data = preprocessor.process(data);
+    model.train(processed_data);
+
+    auto predictions = model.predict(processed_data);
+    assert(predictions.size() == processed_data.size());
+}
