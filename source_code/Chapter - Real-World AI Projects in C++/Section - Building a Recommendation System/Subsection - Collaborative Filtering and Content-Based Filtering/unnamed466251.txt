@@ -1,0 +1,44 @@
+#include <Eigen/Dense>
+#include <thread>
+#include <vector>
+
+using Eigen::MatrixXd;
+using std::cref;
+using std::ref;
+using std::thread;
+using std::vector;
+
+// Compute C[startRow:endRow, :] = A[startRow:endRow, :] * B
+void parallelMatrixMultiplication(const MatrixXd& A,
+                                  const MatrixXd& B,
+                                  MatrixXd& C,
+                                  int startRow,
+                                  int endRow)
+{
+    for (int i = startRow; i < endRow; ++i)
+        for (int j = 0; j < B.cols(); ++j)
+            C(i, j) = A.row(i).dot(B.col(j));
+}
+
+// Multiply A*B into C using numThreads threads; dimensions must already match
+void parallelMultiply(const MatrixXd& A,
+                      const MatrixXd& B,
+                      MatrixXd& C,
+                      unsigned numThreads)
+{
+    const unsigned rows = A.rows();
+    numThreads = std::min(numThreads, rows);
+
+    vector<thread> threads;
+    threads.reserve(numThreads);
+
+    const unsigned rowsPerThread = rows / numThreads;
+    for (unsigned t = 0; t < numThreads; ++t) {
+        unsigned start = t * rowsPerThread;
+        unsigned end   = (t + 1 == numThreads) ? rows : start + rowsPerThread;
+        threads.emplace_back(parallelMatrixMultiplication,
+                             cref(A), cref(B), ref(C), start, end);
+    }
+
+    for (auto& th : threads) th.join();
+}
