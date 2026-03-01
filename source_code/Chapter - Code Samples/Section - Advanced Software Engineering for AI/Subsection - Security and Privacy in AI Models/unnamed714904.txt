@@ -1,0 +1,101 @@
+#include <vector>
+#include <random>
+#include <cmath>
+#include <iostream>
+#include <numeric>
+#include <algorithm>
+
+class Layer {
+public:
+    using Vec = std::vector<double>;
+    using Mat = std::vector<Vec>;
+
+    Mat weights;
+    Vec biases;
+    Vec output;
+    Vec delta;  // gradient w.r.t. pre-activation
+
+    Layer(std::size_t in, std::size_t out)
+        : weights(out, Vec(in)), biases(out, 0.0), output(out), delta(out) {
+        std::mt19937 rng{std::random_device{}()};
+        std::uniform_real_distribution<double> dist(-1.0 / std::sqrt(in), 1.0 / std::sqrt(in));
+        for (auto& row : weights)
+            for (auto& w : row) w = dist(rng);
+    }
+
+    Vec forward(const Vec& in) {
+        for (std::size_t i = 0; i < weights.size(); ++i) {
+            double z = std::inner_product(weights[i].begin(), weights[i].end(), in.begin(), 0.0) + biases[i];
+            output[i] = 1.0 / (1.0 + std::exp(-z));  // sigmoid
+        }
+        return output;
+    }
+};
+
+class NeuralNetwork {
+public:
+    std::vector<Layer> layers;
+
+    NeuralNetwork(const std::vector<std::size_t>& sizes) {
+        for (std::size_t i = 1; i < sizes.size(); ++i)
+            layers.emplace_back(sizes[i - 1], sizes[i]);
+    }
+
+    Vec predict(const Vec& in) {
+        Vec activations = in;
+        for (auto& layer : layers) activations = layer.forward(activations);
+        return activations;
+    }
+
+    void train(const std::vector<Vec>& xs,
+               const std::vector<Vec>& ys,
+               std::size_t epochs,
+               double lr) {
+        for (std::size_t epoch = 0; epoch < epochs; ++epoch) {
+            for (std::size_t i = 0; i < xs.size(); ++i) {
+                // forward
+                Vec activations = xs[i];
+                for (auto& layer : layers) activations = layer.forward(activations);
+
+                // backward
+                Vec grad = activations;
+                for (std::size_t k = 0; k < grad.size(); ++k)
+                    grad[k] = (ys[i][k] - grad[k]) * grad[k] * (1.0 - grad[k]);
+
+                for (int l = static_cast<int>(layers.size()) - 1; l >= 0; --l) {
+                    Layer& layer = layers[l];
+                    Vec prevAct = (l == 0 ? xs[i] : layers[l - 1].output);
+                    Vec nextGrad(prevAct.size(), 0.0);
+
+                    // update
+                    for (std::size_t j = 0; j < layer.weights.size(); ++j) {
+                        for (std::size_t k = 0; k < layer.weights[j].size(); ++k) {
+                            layer.weights[j][k] += lr * grad[j] * prevAct[k];
+                            nextGrad[k] += grad[j] * layer.weights[j][k];
+                        }
+                        layer.biases[j] += lr * grad[j];
+                    }
+
+                    // propagate gradient
+                    if (l > 0)
+                        for (std::size_t k = 0; k < nextGrad.size(); ++k)
+                            nextGrad[k] *= layers[l - 1].output[k] * (1.0 - layers[l - 1].output[k]);
+                    grad = std::move(nextGrad);
+                }
+            }
+        }
+    }
+};
+
+int main() {
+    NeuralNetwork nn({2, 3, 1});
+    std::vector<std::vector<double>> inputs  = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+    std::vector<std::vector<double>> targets = {{0},    {1},    {1},    {0}};
+
+    nn.train(inputs, targets, 10000, 0.1);
+
+    for (const auto& in : inputs) {
+        auto out = nn.predict(in);
+        std::cout << in[0] << ' ' << in[1] << " -> " << out[0] << '\n';
+    }
+}
