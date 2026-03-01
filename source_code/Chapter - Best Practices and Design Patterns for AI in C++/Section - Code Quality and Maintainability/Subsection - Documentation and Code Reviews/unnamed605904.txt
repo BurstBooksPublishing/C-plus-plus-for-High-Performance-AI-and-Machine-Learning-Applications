@@ -1,0 +1,8 @@
+#include <vector>
+#include <iostream>
+
+void process_data(const std::vector<int>& data) {
+    for (std::size_t i = 0; i < data.size(); ++i) {
+        std::cout << data[i] << '\n';
+    }
+}
