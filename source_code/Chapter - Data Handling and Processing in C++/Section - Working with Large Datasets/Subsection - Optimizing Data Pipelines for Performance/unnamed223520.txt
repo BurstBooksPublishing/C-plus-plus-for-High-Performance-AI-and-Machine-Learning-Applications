@@ -1,0 +1,7 @@
+#include <cstdlib>   // std::aligned_alloc
+#include <new>       // std::bad_alloc
+
+// Allocate 1024 floats aligned to a 64-byte boundary.
+// Throws std::bad_alloc on failure.
+float* aligned_data = static_cast<float*>(std::aligned_alloc(64, 1024 * sizeof(float)));
+if (!aligned_data) throw std::bad_alloc();
