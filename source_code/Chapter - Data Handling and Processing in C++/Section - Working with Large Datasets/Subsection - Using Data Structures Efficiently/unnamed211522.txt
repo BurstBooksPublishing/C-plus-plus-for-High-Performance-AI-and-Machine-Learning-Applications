@@ -1,0 +1,22 @@
+#include <vector>
+#include <algorithm>   // std::remove_if
+#include <numeric>     // std::iota
+
+std::vector<int> data{1, 2, 3, 4, 5};
+std::vector<std::size_t> deleted_indices;          // stable indices of removed elements
+
+// Erase elements whose value is divisible by 2 and record their original indices.
+{
+    std::vector<std::size_t> idx(data.size());
+    std::iota(idx.begin(), idx.end(), 0);          // 0..size-1
+
+    auto new_end = std::remove_if(data.begin(), data.end(),
+                                  [&idx, &deleted_indices](int val) {
+                                      if (val % 2 == 0) {
+                                          deleted_indices.push_back(idx[&val - &idx[0]]);
+                                          return true;
+                                      }
+                                      return false;
+                                  });
+    data.erase(new_end, data.end());
+}
