@@ -1,0 +1,74 @@
+#include <arrow/api.h>
+#include <arrow/dataset/api.h>
+#include <arrow/filesystem/api.h>
+#include <arrow/io/api.h>
+#include <arrow/ipc/api.h>
+#include <tensorflow/core/framework/tensor.h>
+#include <tensorflow/core/public/session.h>
+#include <tensorflow/core/platform/env.h>
+#include <memory>
+#include <vector>
+#include <string>
+#include <stdexcept>
+
+namespace tf = tensorflow;
+
+// Convert a single Arrow Array to a TensorFlow Tensor
+template <typename ArrowType, tf::DataType TfType>
+static tf::Tensor ArrayToTensor(const std::shared_ptr<arrow::Array>& arr) {
+    using ArrowCppType = typename arrow::TypeTraits<ArrowType>::ArrayType;
+    auto typed = std::static_pointer_cast<ArrowCppType>(arr);
+    tf::Tensor tensor(TfType, {arr->length()});
+    auto dst = tensor.flat<typename arrow::TypeTraits<ArrowType>::CType>().data();
+    std::copy(typed->raw_values(), typed->raw_values() + arr->length(), dst);
+    return tensor;
+}
+
+// Convert an Arrow Table to a vector of TensorFlow Tensors
+std::vector<tf::Tensor> ArrowTableToTensors(const std::shared_ptr<arrow::Table>& table) {
+    std::vector<tf::Tensor> tensors;
+    tensors.reserve(table->num_columns());
+    for (int i = 0; i < table->num_columns(); ++i) {
+        auto chunked = table->column(i);
+        if (chunked->num_chunks() != 1)
+            throw std::invalid_argument("Only single-chunk columns supported");
+        auto arr = chunked->chunk(0);
+        switch (arr->type_id()) {
+            case arrow::Type::INT32:
+                tensors.push_back(ArrayToTensor<arrow::Int32Type, tf::DT_INT32>(arr));
+                break;
+            case arrow::Type::FLOAT:
+                tensors.push_back(ArrayToTensor<arrow::FloatType, tf::DT_FLOAT>(arr));
+                break;
+            default:
+                throw std::invalid_argument("Unsupported Arrow type");
+        }
+    }
+    return tensors;
+}
+
+int main() {
+    tf::Session* session = nullptr;
+    TF_CHECK_OK(tf::NewSession(tf::SessionOptions(), &session));
+
+    // Open local filesystem and Parquet dataset
+    auto fs = std::make_shared<arrow::fs::LocalFileSystem>();
+    auto format = std::make_shared<arrow::dataset::ParquetFileFormat>();
+    arrow::dataset::FileSystemFactoryOptions opts;
+    auto factory = arrow::dataset::FileSystemDatasetFactory::Make(
+        fs, "path/to/dataset", format, opts).ValueOrDie();
+    auto dataset = factory->Finish().ValueOrDie();
+
+    // Scan dataset into Table
+    auto scan_builder = dataset->NewScan().ValueOrDie();
+    auto table = scan_builder->Finish().ValueOrDie()->ToTable().ValueOrDie();
+
+    // Convert and run
+    auto tensors = ArrowTableToTensors(table);
+    std::vector<std::pair<std::string, tf::Tensor>> inputs = {{"input", tensors[0]}};
+    std::vector<tf::Tensor> outputs;
+    TF_CHECK_OK(session->Run(inputs, {"output"}, {}, &outputs));
+
+    session->Close();
+    return 0;
+}
