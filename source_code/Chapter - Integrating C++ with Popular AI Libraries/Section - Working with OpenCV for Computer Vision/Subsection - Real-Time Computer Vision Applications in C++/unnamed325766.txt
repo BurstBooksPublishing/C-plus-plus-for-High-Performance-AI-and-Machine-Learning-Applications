@@ -1,0 +1,20 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+int main(int argc, char* argv[]) {
+    const std::string path = (argc > 1) ? argv[1] : "input.jpg";
+    cv::Mat image = cv::imread(path);
+    if (image.empty()) {
+        std::cerr << "Cannot read image: " << path << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    cv::Mat blurred;
+    cv::GaussianBlur(image, blurred, {15, 15}, 0);
+
+    cv::imshow("Original", image);
+    cv::imshow("Blurred", blurred);
+    cv::waitKey(0);
+
+    return EXIT_SUCCESS;
+}
