@@ -1,0 +1,19 @@
+#include <vector>
+#include <omp.h>
+
+// Assumes:
+//   - data and result are std::vector<T> of equal size N
+//   - compute(T) is thread-safe and noexcept
+template <class T, class F>
+void transform_parallel(const std::vector<T>& data,
+                        std::vector<T>& result,
+                        F compute)
+{
+    const size_t N = data.size();
+    result.resize(N);
+
+    #pragma omp parallel for schedule(static)  // static keeps cache locality
+    for (ptrdiff_t i = 0; i < static_cast<ptrdiff_t>(N); ++i) {
+        result[i] = compute(data[i]);
+    }
+}
