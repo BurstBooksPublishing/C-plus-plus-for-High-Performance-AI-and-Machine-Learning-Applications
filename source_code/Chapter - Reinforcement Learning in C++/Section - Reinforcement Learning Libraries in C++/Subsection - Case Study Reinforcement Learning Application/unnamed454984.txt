@@ -1,0 +1,28 @@
+#include <memory>
+#include <stdexcept>
+
+// Minimal RL headers assumed to exist in project
+#include <rl/Environment.hpp>
+#include <rl/QLearningAgent.hpp>
+
+int main() {
+    // Build environment and agent with RAII
+    auto env   = std::make_unique<rl::Environment>();
+    auto agent = std::make_unique<rl::QLearningAgent>(*env);
+
+    agent->setLearningRate(0.1f);
+    agent->setDiscountFactor(0.9f);
+    agent->setEpsilon(0.1f);
+
+    constexpr int episodes = 1000;
+    for (int ep = 0; ep < episodes; ++ep) {
+        env->reset();
+        while (!env->isTerminal()) {
+            const auto state  = env->getState();
+            const auto action = agent->selectAction(state);
+            const auto reward = env->step(action);
+            agent->updateQValue(state, action, reward, env->getState()); // next state after step
+        }
+    }
+    return 0;
+}
