@@ -1,0 +1,16 @@
+#include <tbb/concurrent_vector.h>
+#include <thread>
+#include <vector>
+
+tbb::concurrent_vector<int> parallel_data;
+
+void worker(int value) {
+    parallel_data.push_back(value); // lock-free growth
+}
+
+int main() {
+    std::vector<std::thread> pool;
+    for (int i = 0; i < 16; ++i) pool.emplace_back(worker, i);
+    for (auto& t : pool) t.join();
+    return 0;
+}
