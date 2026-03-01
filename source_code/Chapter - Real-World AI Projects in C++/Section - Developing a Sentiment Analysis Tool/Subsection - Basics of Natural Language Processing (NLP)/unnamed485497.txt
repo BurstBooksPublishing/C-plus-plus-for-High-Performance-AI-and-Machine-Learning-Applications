@@ -1,0 +1,23 @@
+#include <mlpack.hpp>
+#include <mlpack/methods/naive_bayes/naive_bayes_classifier.hpp>
+
+int main()
+{
+    // Load feature matrix and labels; fatal on failure
+    arma::mat data;
+    if (!mlpack::data::Load("data.csv", data, true))
+        throw std::runtime_error("Cannot read data.csv");
+
+    arma::Row<size_t> labels;
+    if (!mlpack::data::Load("labels.csv", labels, true))
+        throw std::runtime_error("Cannot read labels.csv");
+
+    // Train Naive Bayes classifier
+    mlpack::naive_bayes::NaiveBayesClassifier<> nb(data, labels, arma::max(labels) + 1);
+
+    // Classify training samples (in-place demo)
+    arma::Row<size_t> predictions;
+    nb.Classify(data, predictions);
+
+    return 0;
+}
