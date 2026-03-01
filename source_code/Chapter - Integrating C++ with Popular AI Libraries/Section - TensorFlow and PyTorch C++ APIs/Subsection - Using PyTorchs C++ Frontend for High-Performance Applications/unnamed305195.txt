@@ -1,0 +1,22 @@
+#include <torch/torch.h>
+#include <torch/script.h>
+#include <iostream>
+
+// Stateless custom operator: doubles every element
+torch::Tensor custom_op(torch::Tensor input) {
+    return input * 2;
+}
+
+// Register the operator in the JIT registry
+TORCH_LIBRARY(my_ops, m) {
+    m.def("custom_op(Tensor x) -> Tensor", &custom_op);
+}
+
+int main() {
+    torch::manual_seed(0);
+    torch::Tensor input = torch::ones({2, 2});
+    // Invoke the registered operator through the JIT dispatcher
+    torch::Tensor output = torch::jit::ops::my_ops::custom_op::call(input);
+    std::cout << output << std::endl;
+    return 0;
+}
