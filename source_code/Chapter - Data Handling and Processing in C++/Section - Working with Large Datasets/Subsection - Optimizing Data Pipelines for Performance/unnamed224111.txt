@@ -1,0 +1,12 @@
+#include <future>
+#include <string>
+#include <stdexcept>
+
+// Loads a large dataset from disk in a separate thread.
+// Returns the loaded data; throws on I/O or parse errors.
+auto future = std::async(std::launch::async, []() {
+    return load_large_dataset("data.bin");
+});
+
+// Continue with other work while the dataset loads.
+// Call future.get() when the data is actually required.
