@@ -1,0 +1,56 @@
+#include <cstddef>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
+
+namespace {
+
+constexpr size_t kDefaultBufferSize = 1 << 20; // 1 MiB
+
+void streamDataFromFile(const std::string& filePath,
+                        size_t bufferSize = kDefaultBufferSize) {
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file) {
+        std::cerr << "Error opening file: " << filePath << '\n';
+        return;
+    }
+
+    std::vector<uint8_t> buffer(bufferSize);
+    uint64_t totalBytes = 0;
+
+    while (file.read(reinterpret_cast<char*>(buffer.data()), buffer.size())) {
+        const size_t bytesRead = static_cast<size_t>(file.gcount());
+        totalBytes += bytesRead;
+
+        // Placeholder for real processing
+        uint64_t sum = 0;
+        for (size_t i = 0; i < bytesRead; ++i) sum += buffer[i];
+        std::cout << "Chunk sum: " << sum << '\n';
+    }
+
+    if (file.bad()) {
+        std::cerr << "I/O error while reading: " << filePath << '\n';
+        return;
+    }
+
+    // Handle final partial block
+    const size_t lastBytes = static_cast<size_t>(file.gcount());
+    if (lastBytes) {
+        totalBytes += lastBytes;
+        uint64_t sum = 0;
+        for (size_t i = 0; i < lastBytes; ++i) sum += buffer[i];
+        std::cout << "Final chunk sum: " << sum << '\n';
+    }
+
+    std::cout << "Total bytes processed: " << totalBytes << '\n';
+}
+
+} // namespace
+
+int main(int argc, char* argv[]) {
+    const std::string filePath = (argc > 1) ? argv[1] : "large_dataset.bin";
+    streamDataFromFile(filePath);
+    return 0;
+}
