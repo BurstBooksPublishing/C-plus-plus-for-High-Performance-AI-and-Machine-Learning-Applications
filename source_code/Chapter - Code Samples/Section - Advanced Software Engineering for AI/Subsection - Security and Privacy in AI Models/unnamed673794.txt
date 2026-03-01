@@ -1,0 +1,58 @@
+#include <vector>
+#include <iostream>
+#include <stdexcept>
+#include <iomanip>
+
+using std::vector;
+
+static constexpr double LEARNING_RATE = 0.01;
+static constexpr int    MAX_ITERS     = 1000;
+
+// Compute gradients for both parameters in a single pass
+vector<double> compute_gradients(const vector<double>& X,
+                                 const vector<double>& y,
+                                 const vector<double>& theta)
+{
+    const size_t m = X.size();
+    double grad0 = 0.0, grad1 = 0.0;
+
+    for (size_t i = 0; i < m; ++i) {
+        const double err = theta[0] + theta[1] * X[i] - y[i];
+        grad0 += err;
+        grad1 += err * X[i];
+    }
+    return { grad0 / m, grad1 / m };
+}
+
+// Batch gradient descent for simple linear regression
+vector<double> gradient_descent(const vector<double>& X,
+                                const vector<double>& y,
+                                double learning_rate,
+                                int num_iterations)
+{
+    if (X.size() != y.size() || X.empty())
+        throw std::invalid_argument("X and y must be non-empty and same size.");
+    if (learning_rate <= 0 || num_iterations <= 0)
+        throw std::invalid_argument("learning_rate and num_iterations must be positive.");
+
+    vector<double> theta(2, 0.0);
+
+    for (int iter = 0; iter < num_iterations; ++iter) {
+        const auto grads = compute_gradients(X, y, theta);
+        theta[0] -= learning_rate * grads[0];
+        theta[1] -= learning_rate * grads[1];
+    }
+    return theta;
+}
+
+int main()
+{
+    const vector<double> X{1, 2, 3, 4, 5};
+    const vector<double> y{1, 3, 5, 7, 9};
+
+    const auto theta = gradient_descent(X, y, LEARNING_RATE, MAX_ITERS);
+
+    std::cout << std::fixed << std::setprecision(4)
+              << "Theta0: " << theta[0] << ", Theta1: " << theta[1] << '\n';
+    return 0;
+}
