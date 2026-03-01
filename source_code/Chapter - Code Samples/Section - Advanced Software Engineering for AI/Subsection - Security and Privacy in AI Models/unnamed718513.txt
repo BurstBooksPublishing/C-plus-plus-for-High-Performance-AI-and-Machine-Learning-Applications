@@ -1,0 +1,81 @@
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <stdexcept>
+#include <vector>
+
+using Matrix = std::vector<std::vector<float>>;
+
+static void validate2D(const Matrix& m) {
+    if (m.empty() || m[0].empty()) throw std::invalid_argument("empty matrix");
+    for (const auto& r : m)
+        if (r.size() != m[0].size()) throw std::invalid_argument("jagged matrix");
+}
+
+Matrix conv2D(const Matrix& input, const Matrix& kernel) {
+    validate2D(input);
+    validate2D(kernel);
+
+    const std::size_t outH = input.size() - kernel.size() + 1;
+    const std::size_t outW = input[0].size() - kernel[0].size() + 1;
+    Matrix output(outH, std::vector<float>(outW, 0.0f));
+
+    for (std::size_t i = 0; i < outH; ++i)
+        for (std::size_t j = 0; j < outW; ++j)
+            for (std::size_t ki = 0; ki < kernel.size(); ++ki)
+                for (std::size_t kj = 0; kj < kernel[0].size(); ++kj)
+                    output[i][j] += input[i + ki][j + kj] * kernel[ki][kj];
+
+    return output;
+}
+
+Matrix relu(const Matrix& input) {
+    Matrix output = input;
+    for (auto& row : output)
+        for (float& v : row) v = std::max(0.0f, v);
+    return output;
+}
+
+Matrix maxPooling(const Matrix& input, std::size_t poolSize) {
+    validate2D(input);
+    if (poolSize == 0) throw std::invalid_argument("poolSize == 0");
+
+    const std::size_t outH = input.size() / poolSize;
+    const std::size_t outW = input[0].size() / poolSize;
+    Matrix output(outH, std::vector<float>(outW, 0.0f));
+
+    for (std::size_t i = 0; i < outH; ++i)
+        for (std::size_t j = 0; j < outW; ++j) {
+            float maxVal = -std::numeric_limits<float>::infinity();
+            for (std::size_t pi = 0; pi < poolSize; ++pi)
+                for (std::size_t pj = 0; pj < poolSize; ++pj)
+                    maxVal = std::max(maxVal, input[i * poolSize + pi][j * poolSize + pj]);
+            output[i][j] = maxVal;
+        }
+
+    return output;
+}
+
+int main() {
+    Matrix input = {
+        {1, 2, 3, 4},
+        {5, 6, 7, 8},
+        {9, 10, 11, 12},
+        {13, 14, 15, 16}
+    };
+
+    Matrix kernel = {
+        {1, 0},
+        {0, -1}
+    };
+
+    auto convOut = conv2D(input, kernel);
+    auto reluOut = relu(convOut);
+    auto poolOut = maxPooling(reluOut, 2);
+
+    for (const auto& row : poolOut) {
+        for (float v : row) std::cout << v << ' ';
+        std::cout << '\n';
+    }
+}
