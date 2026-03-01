@@ -1,0 +1,18 @@
+#include <vector>
+#include <stdexcept>
+#include <functional>
+
+double neuron(const std::vector<double>& inputs,
+              const std::vector<double>& weights,
+              double bias,
+              std::function<double(double)> activation)
+{
+    if (inputs.size() != weights.size())
+        throw std::invalid_argument("inputs/weights size mismatch");
+
+    double sum = bias;
+    for (size_t i = 0; i < inputs.size(); ++i)
+        sum += inputs[i] * weights[i];
+
+    return activation(sum);
+}
