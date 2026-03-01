@@ -1,0 +1,13 @@
+#include <stdexcept>
+#include <limits>
+
+template <unsigned int N>
+constexpr unsigned long long factorial() {
+    static_assert(N <= 20, "Overflow: factorial(>20) exceeds 64-bit range");
+    return N * factorial<N - 1>();
+}
+
+template <>
+constexpr unsigned long long factorial<0>() {
+    return 1;
+}
