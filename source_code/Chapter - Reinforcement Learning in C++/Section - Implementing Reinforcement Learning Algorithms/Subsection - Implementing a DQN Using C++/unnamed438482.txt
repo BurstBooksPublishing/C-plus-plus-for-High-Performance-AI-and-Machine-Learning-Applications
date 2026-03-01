@@ -1,0 +1,32 @@
+#include <vector>
+#include <stdexcept>
+#include <Eigen/Dense>
+
+class NeuralNetwork {
+public:
+    explicit NeuralNetwork(const std::vector<int>& layer_sizes) {
+        if (layer_sizes.size() < 2) throw std::invalid_argument("At least two layers required.");
+        for (size_t i = 1; i < layer_sizes.size(); ++i) {
+            weights_.emplace_back(layer_sizes[i], layer_sizes[i - 1]);
+            biases_.emplace_back(layer_sizes[i]);
+            // Xavier initialization
+            weights_.back().setRandom();
+            weights_.back() *= std::sqrt(2.0 / (layer_sizes[i - 1] + layer_sizes[i]));
+            biases_.back().setZero();
+        }
+    }
+
+    Eigen::VectorXd forward(const Eigen::VectorXd& input) const {
+        if (input.size() != weights_[0].cols())
+            throw std::invalid_argument("Input dimension mismatch.");
+        Eigen::VectorXd output = input;
+        for (size_t i = 0; i < weights_.size(); ++i) {
+            output = (weights_[i] * output + biases_[i]).array().tanh();
+        }
+        return output;
+    }
+
+private:
+    std::vector<Eigen::MatrixXd> weights_;
+    std::vector<Eigen::VectorXd> biases_;
+};
