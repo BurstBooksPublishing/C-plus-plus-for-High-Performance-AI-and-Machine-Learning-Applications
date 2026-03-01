@@ -1,0 +1,49 @@
+#include <opencv2/opencv.hpp>
+#include <opencv2/dnn.hpp>
+#include <opencv2/dnn/layer.hpp>
+
+class CustomLayer final : public cv::dnn::Layer {
+public:
+    explicit CustomLayer(const cv::dnn::LayerParams &params) : cv::dnn::Layer(params) {}
+
+    static cv::Ptr<cv::dnn::Layer> create(cv::dnn::LayerParams &params) {
+        return cv::Ptr<cv::dnn::Layer>(new CustomLayer(params));
+    }
+
+    virtual void forward(cv::InputArrayOfArrays inputs,
+                         cv::OutputArrayOfArrays outputs,
+                         cv::OutputArrayOfArrays internals) override {
+        std::vector<cv::Mat> inpMats, outMats;
+        inputs.getMatVector(inpMats);
+        outputs.getMatVector(outMats);
+
+        for (size_t i = 0; i < inpMats.size(); ++i) {
+            outMats[i] = inpMats[i] + 1.0f;
+        }
+        outputs.assign(outMats);
+    }
+};
+
+int main() {
+    CV_Assert(cv::dnn::LayerFactory::registerLayer("CustomLayer", CustomLayer::create));
+
+    cv::dnn::Net net = cv::dnn::readNetFromONNX("model_with_custom_layer.onnx");
+    if (net.empty()) {
+        std::cerr << "Failed to load network\n";
+        return -1;
+    }
+
+    cv::Mat image = cv::imread("input_image.jpg");
+    if (image.empty()) {
+        std::cerr << "Failed to read image\n";
+        return -1;
+    }
+
+    cv::Mat blob = cv::dnn::blobFromImage(image, 1.0, cv::Size(224, 224),
+                                          cv::Scalar(0, 0, 0), true, false);
+    net.setInput(blob);
+    cv::Mat output = net.forward();
+
+    std::cout << "Output: " << output << std::endl;
+    return 0;
+}
