@@ -1,0 +1,24 @@
+#include <algorithm>
+#include <cctype>
+#include <iterator>
+#include <sstream>
+#include <string>
+#include <vector>
+
+std::vector<std::string> preprocessText(const std::string& text) {
+    std::vector<std::string> tokens;
+    std::istringstream in(text);
+    std::string tok;
+
+    // split on whitespace
+    while (in >> tok) {
+        // remove punctuation from each token
+        tok.erase(std::remove_if(tok.begin(), tok.end(), ::ispunct), tok.end());
+        if (!tok.empty()) {
+            std::transform(tok.begin(), tok.end(), tok.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
+            tokens.emplace_back(std::move(tok));
+        }
+    }
+    return tokens;
+}
