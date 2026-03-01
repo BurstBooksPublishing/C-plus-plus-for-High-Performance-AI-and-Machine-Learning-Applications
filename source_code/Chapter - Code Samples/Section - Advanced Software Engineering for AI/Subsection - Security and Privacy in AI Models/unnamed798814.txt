@@ -1,0 +1,43 @@
+#include <cmath>
+#include <iostream>
+#include <numbers>
+
+struct Point {
+    double x{}, y{};
+    constexpr Point(double x = 0.0, double y = 0.0) noexcept : x(x), y(y) {}
+};
+
+class AutonomousVehicle {
+public:
+    constexpr AutonomousVehicle(Point startPos = {}, double startHeading = 0.0) noexcept
+        : pos_(startPos), heading_(startHeading) {}
+
+    constexpr void update(double velocity, double angularVelocity, double dt) noexcept {
+        pos_.x += velocity * std::cos(heading_) * dt;
+        pos_.y += velocity * std::sin(heading_) * dt;
+        heading_ += angularVelocity * dt;
+    }
+
+    [[nodiscard]] constexpr Point position() const noexcept { return pos_; }
+    [[nodiscard]] constexpr double heading() const noexcept { return heading_; }
+
+private:
+    Point pos_;
+    double heading_; // radians
+};
+
+int main() {
+    AutonomousVehicle car;
+
+    constexpr double velocity = 10.0;          // m/s
+    constexpr double angularVelocity = 0.1;    // rad/s
+    constexpr double dt = 0.1;                 // s
+    constexpr int steps = 100;
+
+    for (int i = 0; i < steps; ++i) {
+        car.update(velocity, angularVelocity, dt);
+        const auto [x, y] = car.position();
+        std::cout << "Time: " << i * dt << "s, Position: (" << x << ", " << y
+                  << "), Heading: " << car.heading() << " rad\n";
+    }
+}
