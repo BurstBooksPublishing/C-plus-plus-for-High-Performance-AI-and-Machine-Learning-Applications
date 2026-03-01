@@ -1,0 +1,1 @@
+/** * Trains the neural network using the provided data. * @param data The training data. */ void train(const std::vector& data);
