@@ -1,0 +1,31 @@
+#include <tensorflow/core/framework/tensor.h>
+#include <tensorflow/core/framework/tensor_shape.h>
+#include <tensorflow/core/graph/default_device.h>
+#include <tensorflow/core/graph/graph_def_builder.h>
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/public/session.h>
+#include <vector>
+
+std::unique_ptr<tensorflow::Session> buildGraph(
+    const tensorflow::Tensor& input_tensor,
+    int n)
+{
+    tensorflow::GraphDefBuilder builder;
+    tensorflow::ops::StopGradient stop_grad_op(nullptr, input_tensor);
+    std::vector<tensorflow::NodeBuilder::NodeOut> outputs;
+
+    for (int i = 0; i < n; ++i) {
+        auto scope = tensorflow::Scope::NewRootScope();
+        auto layer = tensorflow::ops::StopGradient(
+            scope.WithOpName("layer_" + std::to_string(i)),
+            input_tensor);
+        outputs.emplace_back(layer.node());
+    }
+
+    tensorflow::GraphDef graph_def;
+    TF_CHECK_OK(builder.ToGraphDef(&graph_def));
+
+    auto session = tensorflow::NewSession(tensorflow::SessionOptions());
+    TF_CHECK_OK(session->Create(graph_def));
+    return std::unique_ptr<tensorflow::Session>(session);
+}
