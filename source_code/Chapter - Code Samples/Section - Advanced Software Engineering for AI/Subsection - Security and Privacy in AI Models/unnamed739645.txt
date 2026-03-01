@@ -1,0 +1,45 @@
+#include <arrow/api.h>
+#include <arrow/io/api.h>
+#include <arrow/ipc/api.h>
+#include <iostream>
+#include <memory>
+
+namespace {
+
+// Serialize an Arrow Table to an IPC buffer
+arrow::Result<std::shared_ptr<arrow::Buffer>> SerializeTable(const std::shared_ptr<arrow::Table>& table) {
+    ARROW_ASSIGN_OR_THROW(auto sink, arrow::io::BufferOutputStream::Create());
+    ARROW_ASSIGN_OR_THROW(auto writer, arrow::ipc::MakeStreamWriter(sink.get(), table->schema()));
+    ARROW_RETURN_NOT_OK(writer->WriteTable(*table));
+    ARROW_RETURN_NOT_OK(writer->Close());
+    return sink->Finish();
+}
+
+// Deserialize an IPC buffer to an Arrow Table
+arrow::Result<std::shared_ptr<arrow::Table>> DeserializeTable(const std::shared_ptr<arrow::Buffer>& buffer) {
+    arrow::io::BufferReader reader(buffer);
+    ARROW_ASSIGN_OR_THROW(auto reader_ipc, arrow::ipc::RecordBatchStreamReader::Open(&reader));
+    return reader_ipc->ToTable();
+}
+
+} // namespace
+
+int main() {
+    // Build a simple int64 column
+    arrow::Int64Builder builder;
+    ARROW_RETURN_NOT_OK(builder.AppendValues({1, 2, 3}));
+    std::shared_ptr<arrow::Array> array;
+    ARROW_RETURN_NOT_OK(builder.Finish(&array));
+
+    auto table = arrow::Table::Make(arrow::schema({arrow::field("values", arrow::int64())}), {array});
+
+    // Serialize
+    auto serialized = SerializeTable(table).ValueOrDie();
+    std::cout << "Serialized size: " << serialized->size() << " bytes\n";
+
+    // Deserialize
+    auto deserialized = DeserializeTable(serialized).ValueOrDie();
+    std::cout << "Deserialized rows: " << deserialized->num_rows() << '\n';
+
+    return 0;
+}
