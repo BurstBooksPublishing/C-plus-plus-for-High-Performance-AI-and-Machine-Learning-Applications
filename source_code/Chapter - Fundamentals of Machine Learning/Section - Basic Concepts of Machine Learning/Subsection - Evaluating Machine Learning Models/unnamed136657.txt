@@ -1,0 +1,27 @@
+#include <vector>
+#include <algorithm>
+
+// Assume this is provided elsewhere
+double evaluate_model(const std::vector<double>& train, const std::vector<double>& valid);
+
+std::vector<double> k_fold_cross_validation(const std::vector<double>& data, int k) {
+    std::vector<double> scores;
+    scores.reserve(k);
+
+    const std::size_t n = data.size();
+    const std::size_t fold_size = n / k;
+
+    for (int i = 0; i < k; ++i) {
+        const auto val_begin = data.begin() + i * fold_size;
+        const auto val_end   = (i == k - 1) ? data.end() : val_begin + fold_size;
+
+        std::vector<double> train;
+        train.reserve(n - (val_end - val_begin));
+        train.insert(train.end(), data.begin(), val_begin);
+        train.insert(train.end(), val_end, data.end());
+
+        std::vector<double> val(val_begin, val_end);
+        scores.push_back(evaluate_model(train, val));
+    }
+    return scores;
+}
