@@ -1,0 +1,17 @@
+#include <Eigen/Dense>
+
+Eigen::MatrixXf convolution(const Eigen::MatrixXf& input, const Eigen::MatrixXf& kernel)
+{
+    const Eigen::Index k = kernel.rows();
+    if (kernel.cols() != k || input.rows() < k || input.cols() < k)
+        throw std::invalid_argument("Kernel must be square and fit inside input.");
+
+    const Eigen::Index out = input.rows() - k + 1;
+    Eigen::MatrixXf output(out, out);
+
+    for (Eigen::Index i = 0; i < out; ++i)
+        for (Eigen::Index j = 0; j < out; ++j)
+            output(i, j) = input.block(i, j, k, k).cwiseProduct(kernel).sum();
+
+    return output;
+}
