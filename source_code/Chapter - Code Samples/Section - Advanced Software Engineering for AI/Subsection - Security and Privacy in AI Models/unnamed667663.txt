@@ -1,0 +1,62 @@
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+
+class LinearRegression {
+public:
+    explicit LinearRegression(bool fit_intercept = true)
+        : fit_intercept_(fit_intercept) {}
+
+    void fit(const std::vector<std::vector<double>>& X,
+             const std::vector<double>& y,
+             double learning_rate = 0.01,
+             int epochs = 1000,
+             double tol = 1e-6) {
+        if (X.empty() || y.empty() || X.size() != y.size())
+            throw std::invalid_argument("Invalid data");
+
+        const size_t n = X.size();
+        const size_t d = X[0].size();
+        for (const auto& row : X)
+            if (row.size() != d) throw std::invalid_argument("Inconsistent features");
+
+        coef_.assign(d + (fit_intercept_ ? 1 : 0), 0.0);
+
+        std::vector<double> prev_coef;
+        for (int epoch = 0; epoch < epochs; ++epoch) {
+            prev_coef = coef_;
+
+            std::vector<double> grad(coef_.size(), 0.0);
+            for (size_t i = 0; i < n; ++i) {
+                double err = predict(X[i]) - y[i];
+                if (fit_intercept_) grad[0] += err;
+                for (size_t j = 0; j < d; ++j)
+                    grad[fit_intercept_ + j] += err * X[i][j];
+            }
+
+            for (size_t j = 0; j < coef_.size(); ++j)
+                coef_[j] -= learning_rate * grad[j] / n;
+
+            double delta = 0.0;
+            for (size_t j = 0; j < coef_.size(); ++j)
+                delta += std::abs(coef_[j] - prev_coef[j]);
+            if (delta < tol) break;
+        }
+    }
+
+    double predict(const std::vector<double>& x) const {
+        if (x.size() + (fit_intercept_ ? 1 : 0) != coef_.size())
+            throw std::invalid_argument("Feature size mismatch");
+
+        double y = fit_intercept_ ? coef_[0] : 0.0;
+        for (size_t j = 0; j < x.size(); ++j)
+            y += coef_[fit_intercept_ + j] * x[j];
+        return y;
+    }
+
+    const std::vector<double>& coefficients() const noexcept { return coef_; }
+
+private:
+    std::vector<double> coef_;
+    bool fit_intercept_;
+};
