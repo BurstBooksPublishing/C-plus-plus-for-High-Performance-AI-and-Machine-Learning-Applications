@@ -1,0 +1,60 @@
+#include <cassert>
+#include <iostream>
+#include <vector>
+#include <random>
+
+class Neuron {
+public:
+    explicit Neuron(std::size_t numInputs)
+        : weights(numInputs), bias(initWeight()) {
+        std::generate(weights.begin(), weights.end(),
+                      []() { return initWeight(); });
+    }
+
+    double forward(const std::vector<double>& inputs) const {
+        assert(inputs.size() == weights.size());
+        double sum = bias;
+        for (std::size_t i = 0; i < inputs.size(); ++i)
+            sum += inputs[i] * weights[i];
+        return activate(sum);
+    }
+
+private:
+    std::vector<double> weights;
+    double bias;
+
+    static double initWeight() {
+        static std::mt19937 rng{std::random_device{}()};
+        static std::uniform_real_distribution<double> dist(-0.5, 0.5);
+        return dist(rng);
+    }
+
+    static double activate(double x) { return std::max(0.0, x); }
+};
+
+class Layer {
+public:
+    Layer(std::size_t numNeurons, std::size_t numInputs)
+        : neurons(numNeurons, Neuron(numInputs)) {}
+
+    std::vector<double> forward(const std::vector<double>& inputs) const {
+        std::vector<double> outputs;
+        outputs.reserve(neurons.size());
+        for (const auto& n : neurons) outputs.push_back(n.forward(inputs));
+        return outputs;
+    }
+
+private:
+    std::vector<Neuron> neurons;
+};
+
+int main() {
+    std::vector<double> inputs{1.0, 2.0, 3.0};
+
+    Neuron n(3);
+    std::cout << "Neuron output: " << n.forward(inputs) << '\n';
+
+    Layer layer(2, 3);
+    for (double v : layer.forward(inputs)) std::cout << v << ' ';
+    std::cout << '\n';
+}
