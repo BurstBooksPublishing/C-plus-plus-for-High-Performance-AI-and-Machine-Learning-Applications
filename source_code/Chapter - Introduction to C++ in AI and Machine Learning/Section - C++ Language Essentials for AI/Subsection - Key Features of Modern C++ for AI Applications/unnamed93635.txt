@@ -1,0 +1,9 @@
+#include <vector>
+#include <iostream>
+
+int main() {
+    const std::vector<int> v = {1, 2, 3, 4, 5}; // immutable data
+    for (const int x : v) std::cout << x << ' ';
+    std::cout << std::endl;
+    return 0;
+}
