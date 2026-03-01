@@ -1,0 +1,25 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+int main() {
+    cv::VideoCapture cap(0, cv::CAP_DSHOW);          // Use DirectShow for faster startup on Windows
+    if (!cap.isOpened()) {
+        std::cerr << "Failed to open default camera\n";
+        return EXIT_FAILURE;
+    }
+
+    cap.set(cv::CAP_PROP_FRAME_WIDTH,  1280);        // Request HD resolution
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 720);
+
+    cv::Mat frame;
+    while (true) {
+        if (!cap.read(frame) || frame.empty()) break;
+
+        cv::imshow("Live Video", frame);
+        if (cv::waitKey(1) == 27) break;             // ESC quits
+    }
+
+    cap.release();
+    cv::destroyAllWindows();
+    return EXIT_SUCCESS;
+}
