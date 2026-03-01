@@ -1,0 +1,30 @@
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/public/session.h>
+#include <tensorflow/core/framework/tensor.h>
+#include <iostream>
+#include <memory>
+
+int main() {
+    // Load the graph
+    std::unique_ptr<tensorflow::Session> session(tensorflow::NewSession({}));
+    tensorflow::GraphDef graph_def;
+    if (!tensorflow::ReadBinaryProto(tensorflow::Env::Default(), "model.pb", &graph_def).ok())
+        return 1;
+    if (!session->Create(graph_def).ok())
+        return 1;
+
+    // Build input tensor (1×4 float matrix)
+    tensorflow::Tensor input(tensorflow::DT_FLOAT, {1, 4});
+    auto mapped = input.tensor<float, 2>();
+    mapped.setZero();  // fill with zeros; replace with real data
+
+    // Run inference
+    std::vector<tensorflow::Tensor> outputs;
+    if (!session->Run({{"input", input}}, {"output"}, {}, &outputs).ok())
+        return 1;
+
+    // Example: print first value of output
+    std::cout << outputs[0].flat<float>()(0) << std::endl;
+
+    return 0;
+}
