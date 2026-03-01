@@ -1,0 +1,15 @@
+#include <vector>
+#include <stdexcept>
+
+double mse_loss(const std::vector<double>& predictions,
+                const std::vector<double>& targets) {
+    if (predictions.size() != targets.size())
+        throw std::invalid_argument("Size mismatch");
+
+    double loss = 0.0;
+    for (size_t i = 0; i < predictions.size(); ++i) {
+        double error = predictions[i] - targets[i];
+        loss += error * error;
+    }
+    return loss / predictions.size();
+}
