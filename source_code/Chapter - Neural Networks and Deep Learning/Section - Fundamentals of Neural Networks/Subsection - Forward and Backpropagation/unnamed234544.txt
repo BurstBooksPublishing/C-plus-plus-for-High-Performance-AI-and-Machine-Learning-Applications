@@ -1,0 +1,11 @@
+#include <algorithm>
+
+// ReLU activation: f(x) = max(0, x)
+double relu(double x) noexcept {
+    return std::max(0.0, x);
+}
+
+// ReLU derivative: 1 if x > 0 else 0
+double relu_derivative(double x) noexcept {
+    return x > 0.0 ? 1.0 : 0.0;
+}
