@@ -1,0 +1,13 @@
+#include <vector>
+#include <stdexcept>
+
+void gradientDescent(std::vector<float>& parameters,
+                     const std::vector<float>& gradients,
+                     float learningRate)
+{
+    if (parameters.size() != gradients.size())
+        throw std::invalid_argument("Size mismatch");
+
+    for (size_t i = 0; i < parameters.size(); ++i)
+        parameters[i] -= learningRate * gradients[i];
+}
