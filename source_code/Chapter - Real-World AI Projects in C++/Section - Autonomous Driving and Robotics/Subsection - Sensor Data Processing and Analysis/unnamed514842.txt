@@ -1,0 +1,19 @@
+#include <Eigen/Core>
+
+// Apply rigid-body transformation: R*p + t
+Eigen::Vector3f transformPoint(const Eigen::Vector3f& point,
+                               const Eigen::Matrix3f& rotation,
+                               const Eigen::Vector3f& translation)
+{
+    return rotation * point + translation;
+}
+
+int main()
+{
+    const Eigen::Vector3f point(1.0f, 2.0f, 3.0f);
+    const Eigen::Matrix3f rotation(Eigen::Matrix3f::Identity());
+    const Eigen::Vector3f translation(Eigen::Vector3f::Zero());
+
+    const Eigen::Vector3f transformed = transformPoint(point, rotation, translation);
+    return 0;
+}
