@@ -1,0 +1,47 @@
+#include <iostream>
+#include <memory>
+#include <vector>
+#include <stdexcept>
+
+namespace AIProject {
+
+class AIModel {
+public:
+    virtual ~AIModel() noexcept = default;
+    virtual void train() = 0;
+    virtual void predict() = 0;
+};
+
+class NeuralNetwork final : public AIModel {
+public:
+    void train() override { std::cout << "Training Neural Network...\n"; }
+    void predict() override { std::cout << "Predicting with Neural Network...\n"; }
+};
+
+class AIModelManager {
+public:
+    void addModel(std::shared_ptr<AIModel> model) {
+        if (!model) throw std::invalid_argument("Null model");
+        models_.emplace_back(std::move(model));
+    }
+
+    void trainAll() const {
+        for (const auto& m : models_) m->train();
+    }
+
+    void predictAll() const {
+        for (const auto& m : models_) m->predict();
+    }
+
+private:
+    std::vector<std::shared_ptr<AIModel>> models_;
+};
+
+} // namespace AIProject
+
+int main() {
+    AIProject::AIModelManager mgr;
+    mgr.addModel(std::make_shared<AIProject::NeuralNetwork>());
+    mgr.trainAll();
+    mgr.predictAll();
+}
