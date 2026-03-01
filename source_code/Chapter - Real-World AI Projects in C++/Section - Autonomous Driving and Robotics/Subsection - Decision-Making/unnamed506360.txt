@@ -1,0 +1,75 @@
+#include <vector>
+#include <queue>
+#include <unordered_map>
+#include <cmath>
+
+struct Node {
+    int x, y;
+    float g = 0;               // cost from start
+    float h = 0;               // heuristic to goal
+    float f() const { return g + h; }
+    bool operator>(const Node& o) const { return f() > o.f(); }
+    bool operator==(const Node& o) const { return x == o.x && y == o.y; }
+};
+
+namespace std {
+template <>
+struct hash<Node> {
+    size_t operator()(const Node& n) const noexcept {
+        return hash<int>()(n.x) ^ (hash<int>()(n.y) << 1);
+    }
+};
+}
+
+std::vector<Node> a_star(const Node& start, const Node& goal, const std::vector<std::vector<int>>& grid) {
+    const int dx[] = {-1, 1, 0, 0};
+    const int dy[] = {0, 0, -1, 1};
+
+    auto in_bounds = [&](int x, int y) {
+        return x >= 0 && y >= 0 && y < (int)grid.size() && x < (int)grid[y].size();
+    };
+
+    auto heuristic = [&](const Node& a, const Node& b) {
+        return std::abs(a.x - b.x) + std::abs(a.y - b.y);
+    };
+
+    std::priority_queue<Node, std::vector<Node>, std::greater<Node>> open;
+    std::unordered_map<Node, Node> came_from;
+    std::unordered_map<Node, float> cost_so_far;
+
+    Node s = start;
+    s.h = heuristic(s, goal);
+    open.push(s);
+    cost_so_far[s] = 0;
+
+    while (!open.empty()) {
+        Node current = open.top();
+        open.pop();
+
+        if (current.x == goal.x && current.y == goal.y) {
+            std::vector<Node> path;
+            for (Node at = current; !(at == start); at = came_from.at(at))
+                path.push_back(at);
+            path.push_back(start);
+            std::reverse(path.begin(), path.end());
+            return path;
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = current.x + dx[i];
+            int ny = current.y + dy[i];
+            if (!in_bounds(nx, ny) || grid[ny][nx] != 0) continue;
+
+            Node next{nx, ny};
+            float new_cost = current.g + 1;
+            if (!cost_so_far.count(next) || new_cost < cost_so_far[next]) {
+                cost_so_far[next] = new_cost;
+                next.g = new_cost;
+                next.h = heuristic(next, goal);
+                open.push(next);
+                came_from[next] = current;
+            }
+        }
+    }
+    return {};
+}
