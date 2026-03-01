@@ -1,0 +1,31 @@
+#include <onnxruntime_cxx_api.h>
+#include <vector>
+#include <stdexcept>
+#include <iostream>
+
+void runInference(const std::vector<float>& input) {
+    Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "inference");
+    Ort::SessionOptions opts;
+    opts.SetIntraOpNumThreads(1);
+    opts.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+
+    Ort::Session session(env, "model.onnx", opts);
+    Ort::AllocatorWithDefaultOptions allocator;
+
+    auto* inputName = session.GetInputNameAllocated(0, allocator);
+    auto* outputName = session.GetOutputNameAllocated(0, allocator);
+    const std::array<const char*, 1> inputNames{inputName.get()};
+    const std::array<const char*, 1> outputNames{outputName.get()};
+
+    const std::array<int64_t, 2> shape{1, static_cast<int64_t>(input.size())};
+    Ort::Value tensor = Ort::Value::CreateTensor<float>(
+        Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault),
+        const_cast<float*>(input.data()), input.size(), shape.data(), shape.size());
+
+    auto outputs = session.Run(Ort::RunOptions{nullptr}, inputNames.data(), &tensor, 1, outputNames.data(), 1);
+    if (outputs.empty() || !outputs[0].IsTensor())
+        throw std::runtime_error("Invalid output");
+
+    float* outData = outputs[0].GetTensorMutableData<float>();
+    std::cout << "Result: " << outData[0] << '\n';
+}
