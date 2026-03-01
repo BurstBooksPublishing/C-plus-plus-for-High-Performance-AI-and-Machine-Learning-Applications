@@ -1,0 +1,27 @@
+#include <iostream>
+#include <memory>
+#include <vector>
+
+void efficientMemoryManagement() {
+    auto data = std::make_unique<int[]>(100);          // exception-safe allocation
+
+    for (std::size_t i = 0; i < 100; ++i) data[i] = i * 2;
+
+    std::cout << "Data[10]: " << data[10] << '\n'
+              << "Data[50]: " << data[50] << '\n';
+}
+
+void customAllocatorExample() {
+    std::vector<int> vec;
+    vec.reserve(1000);                                 // single allocation
+
+    for (int i = 0; i < 1000; ++i) vec.push_back(i * 3);
+
+    std::cout << "Vec[100]: " << vec[100] << '\n'
+              << "Vec[500]: " << vec[500] << '\n';
+}
+
+int main() {
+    efficientMemoryManagement();
+    customAllocatorExample();
+}
