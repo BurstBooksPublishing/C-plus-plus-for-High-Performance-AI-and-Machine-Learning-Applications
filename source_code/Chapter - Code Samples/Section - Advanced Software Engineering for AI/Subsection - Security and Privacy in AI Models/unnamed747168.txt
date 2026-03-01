@@ -1,0 +1,34 @@
+#include <algorithm>
+#include <vector>
+
+void matrixMultiply(const std::vector<std::vector<double>>& A,
+                    const std::vector<std::vector<double>>& B,
+                    std::vector<std::vector<double>>& C,
+                    std::size_t blockSize) {
+    const std::size_t n = A.size();
+    const std::size_t p = B.size();
+    const std::size_t m = B.front().size();
+
+    C.assign(n, std::vector<double>(m, 0.0));
+
+    for (std::size_t i = 0; i < n; i += blockSize) {
+        const std::size_t iEnd = std::min(i + blockSize, n);
+        for (std::size_t j = 0; j < m; j += blockSize) {
+            const std::size_t jEnd = std::min(j + blockSize, m);
+            for (std::size_t k = 0; k < p; k += blockSize) {
+                const std::size_t kEnd = std::min(k + blockSize, p);
+                for (std::size_t ii = i; ii < iEnd; ++ii) {
+                    const auto& ARow = A[ii];
+                    auto& CRow = C[ii];
+                    for (std::size_t jj = j; jj < jEnd; ++jj) {
+                        double sum = 0.0;
+                        for (std::size_t kk = k; kk < kEnd; ++kk) {
+                            sum += ARow[kk] * B[kk][jj];
+                        }
+                        CRow[jj] += sum;
+                    }
+                }
+            }
+        }
+    }
+}
