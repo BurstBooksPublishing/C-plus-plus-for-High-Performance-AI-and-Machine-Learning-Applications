@@ -1,0 +1,20 @@
+#include <Eigen/Dense>
+#include <stdexcept>
+
+// Performs one adversarial-training step on `model` by adding uniform random
+// perturbations of magnitude `epsilon` to `data` and calling `model.train()`.
+// Throws if epsilon is negative.
+template <typename Model>
+void adversarialTraining(Model& model,
+                         const Eigen::MatrixXd& data,
+                         double epsilon)
+{
+    if (epsilon < 0.0)
+        throw std::invalid_argument("epsilon must be non-negative");
+
+    Eigen::MatrixXd noise =
+        Eigen::MatrixXd::Random(data.rows(), data.cols()); // [-1,1] uniform
+    Eigen::MatrixXd perturbed = data + epsilon * noise;
+
+    model.train(perturbed);
+}
