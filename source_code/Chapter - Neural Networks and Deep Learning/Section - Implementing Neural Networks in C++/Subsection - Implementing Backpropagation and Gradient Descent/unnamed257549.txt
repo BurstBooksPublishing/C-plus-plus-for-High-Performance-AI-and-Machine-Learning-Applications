@@ -1,0 +1,39 @@
+#include <vector>
+#include <stdexcept>
+
+class FullyConnectedLayer {
+public:
+    void backward(const std::vector<double>& input,
+                  const std::vector<double>& grad_output);
+
+private:
+    std::vector<std::vector<double>> weights;
+    std::vector<double> biases;
+    double learning_rate = 0.01;
+};
+
+void FullyConnectedLayer::backward(const std::vector<double>& input,
+                                   const std::vector<double>& grad_output) {
+    if (input.size() != weights.size() || grad_output.size() != weights[0].size()) {
+        throw std::invalid_argument("Dimension mismatch in backward pass");
+    }
+
+    // Compute gradients w.r.t. weights and biases
+    std::vector<std::vector<double>> grad_weights(weights.size(),
+                                                  std::vector<double>(weights[0].size(), 0.0));
+    for (size_t i = 0; i < weights.size(); ++i) {
+        for (size_t j = 0; j < weights[i].size(); ++j) {
+            grad_weights[i][j] = input[i] * grad_output[j];
+        }
+    }
+
+    // Update parameters in-place
+    for (size_t i = 0; i < weights.size(); ++i) {
+        for (size_t j = 0; j < weights[i].size(); ++j) {
+            weights[i][j] -= learning_rate * grad_weights[i][j];
+        }
+    }
+    for (size_t i = 0; i < biases.size(); ++i) {
+        biases[i] -= learning_rate * grad_output[i];
+    }
+}
