@@ -1,0 +1,23 @@
+#include <Eigen/Dense>
+#include <stdexcept>
+
+void normalize(Eigen::MatrixXd& data) {
+    if (data.size() == 0) return;               // guard empty input
+    Eigen::VectorXd min_vals = data.colwise().minCoeff();
+    Eigen::VectorXd max_vals = data.colwise().maxCoeff();
+    Eigen::VectorXd denom = max_vals - min_vals;
+    if ((denom.array() <= 0).any())             // prevent division by zero
+        throw std::invalid_argument("Constant column detected in normalize()");
+    data = (data.rowwise() - min_vals.transpose()).array().rowwise() /
+           denom.transpose().array();
+}
+
+void standardize(Eigen::MatrixXd& data) {
+    if (data.size() == 0) return;
+    Eigen::VectorXd mean = data.colwise().mean();
+    Eigen::VectorXd std_dev = ((data.rowwise() - mean.transpose()).array().square().colwise().sum() / data.rows()).sqrt();
+    if ((std_dev.array() <= 0).any())
+        throw std::invalid_argument("Constant column detected in standardize()");
+    data = (data.rowwise() - mean.transpose()).array().rowwise() /
+           std_dev.transpose().array();
+}
