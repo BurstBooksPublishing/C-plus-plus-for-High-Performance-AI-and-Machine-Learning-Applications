@@ -1,0 +1,11 @@
+#include <cstdlib>   // std::aligned_alloc, std::free
+#include <new>       // std::bad_alloc
+
+// Allocate 1 million doubles with 64-byte alignment.
+// Throws std::bad_alloc on failure.
+void* aligned_memory = []() -> void* {
+    constexpr std::size_t align = 64;
+    std::size_t bytes = 1000000 * sizeof(double);
+    if (void* p = std::aligned_alloc(align, bytes)) return p;
+    throw std::bad_alloc{};
+}();
