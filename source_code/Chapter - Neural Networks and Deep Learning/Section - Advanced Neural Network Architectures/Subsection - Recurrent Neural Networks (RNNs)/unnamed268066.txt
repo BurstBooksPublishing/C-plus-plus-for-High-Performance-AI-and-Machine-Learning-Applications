@@ -1,0 +1,101 @@
+#include <vector>
+#include <random>
+#include <cmath>
+#include <stdexcept>
+
+class RNN {
+public:
+    RNN(std::size_t input_size,
+        std::size_t hidden_size,
+        std::size_t output_size,
+        unsigned seed = std::random_device{}())
+        : input_size_(input_size),
+          hidden_size_(hidden_size),
+          output_size_(output_size),
+          gen_(seed),
+          dist_(-0.1, 0.1) {
+
+        W_h_.resize(hidden_size_, std::vector<double>(hidden_size_));
+        W_x_.resize(hidden_size_, std::vector<double>(input_size_));
+        b_h_.resize(hidden_size_);
+        W_y_.resize(output_size_, std::vector<double>(hidden_size_));
+        b_y_.resize(output_size_);
+
+        initialize_weights();
+    }
+
+    std::vector<double> forward(const std::vector<std::vector<double>>& inputs) {
+        if (inputs.empty()) return {};
+
+        std::vector<double> h(hidden_size_, 0.0);
+        std::vector<double> out;
+        out.reserve(inputs.size());
+
+        for (const auto& x : inputs) {
+            if (x.size() != input_size_)
+                throw std::invalid_argument("Input dimension mismatch");
+
+            // h = tanh(W_h * h + W_x * x + b_h)
+            mv(W_h_, h, h);               // h = W_h * h
+            axpy(W_x_, x, h);             // h += W_x * x
+            add_bias(b_h_, h);            // h += b_h
+            tanh_(h);                     // h = tanh(h)
+
+            // y = W_y * h + b_y
+            std::vector<double> y(output_size_);
+            mv(W_y_, h, y);
+            add_bias(b_y_, y);
+
+            out.push_back(y[0]);          // single scalar output per step
+        }
+        return out;
+    }
+
+private:
+    std::size_t input_size_, hidden_size_, output_size_;
+    std::vector<std::vector<double>> W_h_, W_x_, W_y_;
+    std::vector<double> b_h_, b_y_;
+    std::mt19937 gen_;
+    std::uniform_real_distribution<double> dist_;
+
+    void initialize_weights() {
+        for (auto& row : W_h_) for (auto& w : row) w = dist_(gen_);
+        for (auto& row : W_x_) for (auto& w : row) w = dist_(gen_);
+        for (auto& row : W_y_) for (auto& w : row) w = dist_(gen_);
+        // biases left at zero
+    }
+
+    // y = M * x + y
+    static void mv(const std::vector<std::vector<double>>& M,
+                   const std::vector<double>& x,
+                   std::vector<double>& y) {
+        const std::size_t m = M.size();
+        const std::size_t n = x.size();
+        for (std::size_t i = 0; i < m; ++i) {
+            double sum = 0.0;
+            for (std::size_t j = 0; j < n; ++j) sum += M[i][j] * x[j];
+            y[i] += sum;
+        }
+    }
+
+    // y = M * x + y
+    static void axpy(const std::vector<std::vector<double>>& M,
+                     const std::vector<double>& x,
+                     std::vector<double>& y) {
+        const std::size_t m = M.size();
+        const std::size_t n = x.size();
+        for (std::size_t i = 0; i < m; ++i) {
+            double sum = 0.0;
+            for (std::size_t j = 0; j < n; ++j) sum += M[i][j] * x[j];
+            y[i] += sum;
+        }
+    }
+
+    static void add_bias(const std::vector<double>& b, std::vector<double>& v) {
+        for (std::size_t i = 0; i < v.size(); ++i) v[i] += b[i];
+    }
+
+    static void tanh_(std::vector<double>& v) {
+        for (auto& x : v) x = std::tanh(x);
+    }
+};
