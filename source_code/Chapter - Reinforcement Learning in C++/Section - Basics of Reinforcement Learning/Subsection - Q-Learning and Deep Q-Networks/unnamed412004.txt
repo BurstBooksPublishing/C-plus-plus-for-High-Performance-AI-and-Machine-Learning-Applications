@@ -1,0 +1,57 @@
+#include <unordered_map>
+#include <vector>
+#include <limits>
+#include <random>
+#include <utility>
+
+struct PairHash {
+    std::size_t operator()(const std::pair<int, int>& p) const noexcept {
+        return std::hash<int>{}(p.first) ^ (std::hash<int>{}(p.second) << 1);
+    }
+};
+
+class QLearning {
+public:
+    QLearning(double alpha, double gamma, double epsilon, int seed = std::random_device{}())
+        : alpha(alpha), gamma(gamma), epsilon(epsilon), gen(seed) {}
+
+    int chooseAction(int state, const std::vector<int>& actions) {
+        if (actions.empty()) return -1;
+        std::uniform_real_distribution<> dis(0.0, 1.0);
+        if (dis(gen) < epsilon) {
+            std::uniform_int_distribution<> idx(0, actions.size() - 1);
+            return actions[idx(gen)];
+        }
+        return getBestAction(state, actions);
+    }
+
+    void update(int state, int action, double reward, int nextState, const std::vector<int>& nextActions) {
+        if (nextActions.empty()) return;
+        double maxQ = getMaxQ(nextState, nextActions);
+        int key = encode(state, action);
+        qTable[key] += alpha * (reward + gamma * maxQ - qTable[key]);
+    }
+
+private:
+    double alpha, gamma, epsilon;
+    std::unordered_map<int, double> qTable;
+    std::mt19937 gen;
+
+    int encode(int s, int a) const { return (s << 16) | (a & 0xFFFF); }
+
+    int getBestAction(int state, const std::vector<int>& actions) {
+        int best = actions[0];
+        double bestQ = -std::numeric_limits<double>::infinity();
+        for (int a : actions) {
+            double q = qTable[encode(state, a)];
+            if (q > bestQ) { bestQ = q; best = a; }
+        }
+        return best;
+    }
+
+    double getMaxQ(int state, const std::vector<int>& actions) {
+        double maxQ = -std::numeric_limits<double>::infinity();
+        for (int a : actions) maxQ = std::max(maxQ, qTable[encode(state, a)]);
+        return maxQ;
+    }
+};
