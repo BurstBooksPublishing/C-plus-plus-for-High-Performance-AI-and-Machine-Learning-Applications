@@ -1,0 +1,24 @@
+#include <cuda_runtime.h>
+
+__global__ void convolve2DKernel(const float* __restrict__ input,
+                                 const float* __restrict__ kernel,
+                                 float* __restrict__ output,
+                                 int inputHeight, int inputWidth,
+                                 int kernelHeight, int kernelWidth) {
+    const int outCol = blockIdx.x * blockDim.x + threadIdx.x;
+    const int outRow = blockIdx.y * blockDim.y + threadIdx.y;
+
+    const int outWidth  = inputWidth  - kernelWidth  + 1;
+    const int outHeight = inputHeight - kernelHeight + 1;
+
+    if (outRow < outHeight && outCol < outWidth) {
+        float sum = 0.f;
+        for (int kRow = 0; kRow < kernelHeight; ++kRow) {
+            for (int kCol = 0; kCol < kernelWidth; ++kCol) {
+                sum += input[(outRow + kRow) * inputWidth + (outCol + kCol)]
+                     * kernel[kRow * kernelWidth + kCol];
+            }
+        }
+        output[outRow * outWidth + outCol] = sum;
+    }
+}
