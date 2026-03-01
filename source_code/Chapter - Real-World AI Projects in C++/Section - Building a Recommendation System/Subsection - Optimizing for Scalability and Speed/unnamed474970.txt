@@ -1,0 +1,6 @@
+#include <unordered_map>
+#include <string>
+#include <vector>
+
+// Maps user identifier to their ordered list of preference strings
+std::unordered_map<std::string, std::vector<std::string>> user_preferences;
