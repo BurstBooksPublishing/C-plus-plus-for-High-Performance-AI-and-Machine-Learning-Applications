@@ -1,0 +1,39 @@
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+
+inline double dot(const std::vector<double>& a,
+                  const std::vector<double>& b)
+{
+    double s = 0.0;
+    for (size_t i = 0; i < a.size(); ++i) s += a[i] * b[i];
+    return s;
+}
+
+void gradientDescent(const std::vector<std::vector<double>>& X,
+                     const std::vector<double>& y,
+                     std::vector<double>& theta,
+                     double alpha,
+                     int num_iters)
+{
+    const size_t m = X.size();
+    const size_t n = theta.size();
+    if (m == 0 || n == 0 || y.size() != m) throw std::invalid_argument("dimension mismatch");
+    for (const auto& row : X) if (row.size() != n - 1) throw std::invalid_argument("feature dimension mismatch");
+
+    std::vector<double> grad(n, 0.0);
+
+    for (int it = 0; it < num_iters; ++it) {
+        std::fill(grad.begin(), grad.end(), 0.0);
+
+        for (size_t i = 0; i < m; ++i) {
+            double pred = theta[0] + dot(theta, X[i]);   // bias + linear combination
+            double err = pred - y[i];
+            grad[0] += err;                              // bias gradient
+            for (size_t j = 1; j < n; ++j) grad[j] += err * X[i][j - 1];
+        }
+
+        double scale = alpha / m;
+        for (size_t j = 0; j < n; ++j) theta[j] -= scale * grad[j];
+    }
+}
