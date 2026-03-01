@@ -1,0 +1,158 @@
+#include <algorithm>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <numeric>
+#include <random>
+#include <stdexcept>
+#include <vector>
+
+struct DataPoint {
+    std::vector<double> features;
+    int label;
+};
+
+class TreeNode {
+public:
+    int featureIndex = -1;
+    double threshold = 0.0;
+    int label = -1;
+    std::unique_ptr<TreeNode> left;
+    std::unique_ptr<TreeNode> right;
+};
+
+class DecisionTree {
+public:
+    explicit DecisionTree(int maxDepth = -1, int minSamplesSplit = 2, double minImpurity = 1e-7)
+        : maxDepth_(maxDepth), minSamplesSplit_(minSamplesSplit), minImpurity_(minImpurity) {}
+
+    void fit(const std::vector<DataPoint>& data) {
+        if (data.empty()) throw std::invalid_argument("Empty training set");
+        numFeatures_ = data[0].features.size();
+        root_ = buildTree(data, 0);
+    }
+
+    int predict(const DataPoint& point) const {
+        if (!root_) throw std::runtime_error("Model not trained");
+        return predictNode(root_.get(), point);
+    }
+
+private:
+    int maxDepth_;
+    int minSamplesSplit_;
+    double minImpurity_;
+    size_t numFeatures_ = 0;
+    std::unique_ptr<TreeNode> root_;
+
+    static double gini(const std::vector<DataPoint>& data) {
+        std::map<int, size_t> counts;
+        for (const auto& dp : data) ++counts[dp.label];
+        double impurity = 1.0;
+        const size_t n = data.size();
+        for (const auto& [_, c] : counts) {
+            double p = static_cast<double>(c) / n;
+            impurity -= p * p;
+        }
+        return impurity;
+    }
+
+    static std::pair<std::vector<DataPoint>, std::vector<DataPoint>>
+    split(const std::vector<DataPoint>& data, size_t feature, double threshold) {
+        std::vector<DataPoint> left, right;
+        left.reserve(data.size());
+        right.reserve(data.size());
+        for (const auto& dp : data) {
+            (dp.features[feature] <= threshold ? left : right).push_back(dp);
+        }
+        return {left, right};
+    }
+
+    struct SplitInfo {
+        size_t feature = 0;
+        double threshold = 0.0;
+        double score = std::numeric_limits<double>::max();
+    };
+
+    SplitInfo bestSplit(const std::vector<DataPoint>& data) const {
+        const double parentGini = gini(data);
+        SplitInfo best;
+        for (size_t f = 0; f < numFeatures_; ++f) {
+            std::vector<double> values;
+            values.reserve(data.size());
+            for (const auto& dp : data) values.push_back(dp.features[f]);
+            std::sort(values.begin(), values.end());
+            values.erase(std::unique(values.begin(), values.end()), values.end());
+
+            for (double th : values) {
+                auto [left, right] = split(data, f, th);
+                if (left.size() < minSamplesSplit_ || right.size() < minSamplesSplit_) continue;
+                double weighted = (left.size() * gini(left) + right.size() * gini(right)) / data.size();
+                if (weighted < best.score) {
+                    best.score = weighted;
+                    best.feature = f;
+                    best.threshold = th;
+                }
+            }
+        }
+        return best;
+    }
+
+    std::unique_ptr<TreeNode> buildTree(const std::vector<DataPoint>& data, int depth) {
+        auto node = std::make_unique<TreeNode>();
+        const double impurity = gini(data);
+        const int predictedLabel = mostCommonLabel(data);
+
+        if ((maxDepth_ >= 0 && depth >= maxDepth_) ||
+            impurity <= minImpurity_ ||
+            data.size() < static_cast<size_t>(minSamplesSplit_ * 2)) {
+            node->label = predictedLabel;
+            return node;
+        }
+
+        SplitInfo split = bestSplit(data);
+        if (split.score == std::numeric_limits<double>::max()) {
+            node->label = predictedLabel;
+            return node;
+        }
+
+        auto [leftData, rightData] = split(data, split.feature, split.threshold);
+        node->featureIndex = static_cast<int>(split.feature);
+        node->threshold = split.threshold;
+        node->left = buildTree(leftData, depth + 1);
+        node->right = buildTree(rightData, depth + 1);
+        return node;
+    }
+
+    static int mostCommonLabel(const std::vector<DataPoint>& data) {
+        std::map<int, size_t> freq;
+        for (const auto& dp : data) ++freq[dp.label];
+        return std::max_element(freq.begin(), freq.end(),
+                                [](const auto& a, const auto& b) { return a.second < b.second; })->first;
+    }
+
+    static int predictNode(const TreeNode* node, const DataPoint& point) {
+        if (node->label != -1) return node->label;
+        return point.features[node->featureIndex] <= node->threshold
+                   ? predictNode(node->left.get(), point)
+                   : predictNode(node->right.get(), point);
+    }
+};
+
+int main() {
+    std::vector<DataPoint> train{
+        {{2.771244718, 1.784783929}, 0},
+        {{1.728571309, 1.169761413}, 0},
+        {{3.678319846, 2.81281357}, 0},
+        {{3.961043357, 2.61995032}, 0},
+        {{2.999208922, 2.209014212}, 0},
+        {{7.497545867, 3.162953546}, 1},
+        {{9.00220326, 3.339047188}, 1},
+        {{7.444542326, 0.476683375}, 1},
+        {{10.12493903, 3.234550982}, 1},
+        {{6.642287351, 3.319983761}, 1}
+    };
+
+    DecisionTree clf;
+    clf.fit(train);
+    std::cout << clf.predict({{6.5, 3.0}, -1}) << '\n';
+}
