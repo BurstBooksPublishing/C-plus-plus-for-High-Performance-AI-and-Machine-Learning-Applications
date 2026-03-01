@@ -1,0 +1,19 @@
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+#include <cmath>
+
+constexpr std::size_t N = 1024;
+
+// Replace raw array with std::vector for RAII and bounds-checked debug builds
+std::vector<std::vector<float>> matrix(N, std::vector<float>(N));
+
+// Example placeholder: real codebase would supply its own implementation
+float process(float x) noexcept { return std::sin(x); }
+
+// Row-major traversal keeps cache lines hot
+for (std::size_t i = 0; i < N; ++i) {
+    for (std::size_t j = 0; j < N; ++j) {
+        matrix[i][j] = process(matrix[i][j]);
+    }
+}
