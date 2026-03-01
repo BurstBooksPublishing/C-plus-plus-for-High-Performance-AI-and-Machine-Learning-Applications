@@ -1,0 +1,1 @@
+// Example of consistent formatting if (condition) { // Code block } else { // Alternative code block }
