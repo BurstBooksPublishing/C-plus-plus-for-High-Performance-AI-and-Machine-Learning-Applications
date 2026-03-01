@@ -1,0 +1,75 @@
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <vector>
+#include <string>
+#include <stdexcept>
+#include <iostream>
+
+namespace crypto {
+
+constexpr size_t AES_256_KEY_SIZE = 32;
+constexpr size_t AES_BLOCK_SIZE   = 16;
+
+using Bytes = std::vector<unsigned char>;
+
+Bytes aes256_cbc_encrypt(const Bytes& plaintext, const Bytes& key, const Bytes& iv) {
+    if (key.size() != AES_256_KEY_SIZE || iv.size() != AES_BLOCK_SIZE)
+        throw std::invalid_argument("key/iv size mismatch");
+
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) throw std::runtime_error("EVP_CIPHER_CTX_new failed");
+
+    Bytes ciphertext(plaintext.size() + AES_BLOCK_SIZE);
+    int len, final_len;
+
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(), iv.data()) != 1 ||
+        EVP_EncryptUpdate(ctx, ciphertext.data(), &len, plaintext.data(), static_cast<int>(plaintext.size())) != 1 ||
+        EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &final_len) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("encryption failed");
+    }
+
+    EVP_CIPHER_CTX_free(ctx);
+    ciphertext.resize(len + final_len);
+    return ciphertext;
+}
+
+Bytes aes256_cbc_decrypt(const Bytes& ciphertext, const Bytes& key, const Bytes& iv) {
+    if (key.size() != AES_256_KEY_SIZE || iv.size() != AES_BLOCK_SIZE)
+        throw std::invalid_argument("key/iv size mismatch");
+
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) throw std::runtime_error("EVP_CIPHER_CTX_new failed");
+
+    Bytes plaintext(ciphertext.size());
+    int len, final_len;
+
+    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(), iv.data()) != 1 ||
+        EVP_DecryptUpdate(ctx, plaintext.data(), &len, ciphertext.data(), static_cast<int>(ciphertext.size())) != 1 ||
+        EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &final_len) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        throw std::runtime_error("decryption failed");
+    }
+
+    EVP_CIPHER_CTX_free(ctx);
+    plaintext.resize(len + final_len);
+    return plaintext;
+}
+
+} // namespace crypto
+
+int main() {
+    crypto::Bytes key(crypto::AES_256_KEY_SIZE);
+    crypto::Bytes iv(crypto::AES_BLOCK_SIZE);
+    RAND_bytes(key.data(), key.size());
+    RAND_bytes(iv.data(), iv.size());
+
+    std::string plaintext_str = "Sensitive AI data";
+    crypto::Bytes plaintext(plaintext_str.begin(), plaintext_str.end());
+
+    auto ciphertext = crypto::aes256_cbc_encrypt(plaintext, key, iv);
+    auto decrypted  = crypto::aes256_cbc_decrypt(ciphertext, key, iv);
+
+    std::cout << "Decrypted: " << std::string(decrypted.begin(), decrypted.end()) << '\n';
+    return 0;
+}
