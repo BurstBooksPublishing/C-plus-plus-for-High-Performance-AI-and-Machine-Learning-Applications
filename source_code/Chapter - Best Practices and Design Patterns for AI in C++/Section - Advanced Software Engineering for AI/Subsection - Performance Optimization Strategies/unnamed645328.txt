@@ -1,0 +1,9 @@
+c
+#include <limits.h>
+
+/* Return the larger of two signed ints.
+   Works for the full INT_MIN..INT_MAX range without UB. */
+int max(int a, int b)
+{
+    return (a > b) ? a : b;
+}
