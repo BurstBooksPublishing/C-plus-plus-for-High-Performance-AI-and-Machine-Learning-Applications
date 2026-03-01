@@ -1,0 +1,62 @@
+#include <torch/torch.h>
+#include <torch/script.h>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+#include <sstream>
+#include <algorithm>
+#include <cctype>
+
+namespace {
+
+const std::string MODEL_PATH = "sentiment_model.pt";
+const std::vector<std::string> VOCAB = {"<pad>", "i", "love", "this", "product", "!", "<unk>"};
+const int64_t UNK_ID = 6;
+const int64_t MAX_LEN = 512;
+
+int64_t vocab_lookup(const std::string& word) {
+    auto it = std::find(VOCAB.begin(), VOCAB.end(), word);
+    return (it != VOCAB.end()) ? std::distance(VOCAB.begin(), it) : UNK_ID;
+}
+
+torch::jit::script::Module load_model(const std::string& path) {
+    torch::jit::script::Module model;
+    try {
+        model = torch::jit::load(path);
+        model.eval();
+    } catch (const c10::Error& e) {
+        std::cerr << "Error loading model: " << e.what() << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+    return model;
+}
+
+torch::Tensor preprocess_text(const std::string& text) {
+    std::stringstream ss(text);
+    std::string word;
+    std::vector<int64_t> token_ids;
+    std::transform(text.begin(), text.end(), text.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    while (ss >> word) token_ids.push_back(vocab_lookup(word));
+    if (token_ids.empty()) token_ids.push_back(UNK_ID);
+    if (token_ids.size() > MAX_LEN) token_ids.resize(MAX_LEN);
+    return torch::tensor(token_ids, torch::kLong).unsqueeze(0);
+}
+
+std::string predict_sentiment(torch::jit::script::Module& model, const std::string& text) {
+    torch::NoGradGuard no_grad;
+    torch::Tensor input = preprocess_text(text);
+    torch::Tensor output = model.forward({input}).toTensor();
+    int64_t pred = output.argmax(1).item<int64_t>();
+    return pred == 1 ? "Positive" : "Negative";
+}
+
+} // namespace
+
+int main() {
+    torch::jit::script::Module model = load_model(MODEL_PATH);
+    std::string text = "I love this product!";
+    std::cout << "Sentiment: " << predict_sentiment(model, text) << std::endl;
+    return 0;
+}
