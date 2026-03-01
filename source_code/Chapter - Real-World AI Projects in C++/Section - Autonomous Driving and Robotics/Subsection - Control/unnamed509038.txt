@@ -1,0 +1,44 @@
+#include <limits>
+
+class PIDController {
+public:
+    PIDController(float kp, float ki, float kd,
+                  float min_out = -std::numeric_limits<float>::max(),
+                  float max_out =  std::numeric_limits<float>::max())
+        : kp_(kp), ki_(ki), kd_(kd),
+          min_out_(min_out), max_out_(max_out),
+          integral_(0), prev_error_(0), first_call_(true) {}
+
+    float compute(float setpoint, float measured_value, float dt) {
+        if (dt <= 0.0f) return 0.0f;               // guard against invalid time step
+        float error = setpoint - measured_value;
+
+        if (first_call_) {                         // suppress derivative spike on first call
+            prev_error_ = error;
+            first_call_ = false;
+        }
+
+        integral_ += error * dt;
+        float derivative = (error - prev_error_) / dt;
+        prev_error_ = error;
+
+        float output = kp_ * error + ki_ * integral_ + kd_ * derivative;
+        return clamp(output, min_out_, max_out_);
+    }
+
+    void reset() {
+        integral_   = 0.0f;
+        prev_error_ = 0.0f;
+        first_call_ = true;
+    }
+
+private:
+    float kp_, ki_, kd_;
+    float integral_, prev_error_;
+    float min_out_, max_out_;
+    bool  first_call_;
+
+    static float clamp(float v, float lo, float hi) {
+        return (v < lo) ? lo : (v > hi) ? hi : v;
+    }
+};
