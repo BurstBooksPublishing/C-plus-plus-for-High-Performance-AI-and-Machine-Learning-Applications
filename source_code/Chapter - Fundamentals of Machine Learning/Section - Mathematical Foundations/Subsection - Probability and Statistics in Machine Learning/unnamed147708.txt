@@ -1,0 +1,24 @@
+#include <vector>
+#include <numeric>
+#include <cmath>
+#include <stdexcept>
+
+void normalize_data(std::vector<double>& data) {
+    if (data.empty()) return;                       // guard against division by zero
+
+    const double mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
+
+    double variance = 0.0;
+    for (double value : data) {
+        double diff = value - mean;
+        variance += diff * diff;                    // faster than std::pow
+    }
+    variance /= data.size();
+
+    const double std_dev = std::sqrt(variance);
+    if (std_dev == 0.0) return;                     // constant data: leave unchanged
+
+    for (double& value : data) {
+        value = (value - mean) / std_dev;
+    }
+}
