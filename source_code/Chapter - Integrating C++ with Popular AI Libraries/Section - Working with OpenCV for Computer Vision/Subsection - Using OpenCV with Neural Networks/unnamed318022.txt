@@ -1,0 +1,34 @@
+#include <opencv2/opencv.hpp>
+#include <opencv2/dnn.hpp>
+#include <iostream>
+
+int main(int argc, char** argv) {
+    const std::string modelPath   = (argc > 1) ? argv[1] : "model.onnx";
+    const std::string imagePath   = (argc > 2) ? argv[2] : "input_image.jpg";
+    const cv::Scalar  mean(0, 0, 0);
+    const cv::Size    inputSize(224, 224);
+
+    cv::dnn::Net net = cv::dnn::readNetFromONNX(modelPath);
+    if (net.empty()) {
+        std::cerr << "Failed to load ONNX model: " << modelPath << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // Prefer CUDA; fall back to CPU if not available
+    net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+    net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
+
+    cv::Mat image = cv::imread(imagePath);
+    if (image.empty()) {
+        std::cerr << "Failed to load image: " << imagePath << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    cv::Mat blob = cv::dnn::blobFromImage(image, 1.0, inputSize, mean, true, false);
+    net.setInput(blob);
+    cv::Mat output = net.forward();
+
+    std::cout << "Output: " << output.reshape(1, 1) << std::endl;
+
+    return EXIT_SUCCESS;
+}
