@@ -1,0 +1,18 @@
+#include <algorithm>
+#include <cmath>
+
+inline double sigmoid(double x) noexcept {
+    // Clamp x to avoid overflow in exp(-x)
+    if (x < -700.0) return 0.0;
+    if (x >  700.0) return 1.0;
+    return 1.0 / (1.0 + std::exp(-x));
+}
+
+inline double tanh_custom(double x) noexcept {
+    // std::tanh is already provided by <cmath>; rename to avoid collision
+    return std::tanh(x);
+}
+
+inline double relu(double x) noexcept {
+    return std::max(0.0, x);
+}
