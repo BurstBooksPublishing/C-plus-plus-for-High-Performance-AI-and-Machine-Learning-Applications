@@ -1,0 +1,28 @@
+#include <algorithm>   // std::max_element
+#include <cstddef>     // std::size_t
+
+constexpr std::size_t GRID_SIZE = 20;   // example value
+constexpr std::size_t ACTION_COUNT = 4;
+
+double q_table[GRID_SIZE][GRID_SIZE][ACTION_COUNT] = {};
+
+constexpr double ALPHA = 0.1;
+constexpr double GAMMA = 0.9;
+
+// Moves the agent and updates (x,y) to the next state; must be supplied elsewhere
+void move_agent(std::size_t& x, std::size_t& y, std::size_t action);
+
+void update_q_table(std::size_t x,
+                    std::size_t y,
+                    std::size_t action,
+                    double reward)
+{
+    std::size_t next_x = x;
+    std::size_t next_y = y;
+    move_agent(next_x, next_y, action);
+
+    double max_future_q = *std::max_element(std::begin(q_table[next_x][next_y]),
+                                            std::end(q_table[next_x][next_y]));
+
+    q_table[x][y][action] += ALPHA * (reward + GAMMA * max_future_q - q_table[x][y][action]);
+}
