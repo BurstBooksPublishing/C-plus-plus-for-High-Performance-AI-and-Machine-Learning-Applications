@@ -1,0 +1,33 @@
+#include <torch/torch.h>
+#include <iostream>
+
+struct Net : torch::nn::Module {
+    Net() {
+        fc1 = register_module("fc1", torch::nn::Linear(784, 64));
+        fc2 = register_module("fc2", torch::nn::Linear(64, 10));
+    }
+
+    torch::Tensor forward(torch::Tensor x) {
+        x = torch::relu(fc1->forward(x));
+        return fc2->forward(x);
+    }
+
+    torch::nn::Linear fc1{nullptr}, fc2{nullptr};
+};
+
+int main() {
+    torch::Device device(torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
+
+    auto tensor = torch::ones({2, 2}).to(device);
+    std::cout << tensor << std::endl;
+
+    auto net = std::make_shared<Net>();
+    net->to(device);
+
+    auto input = torch::randn({1, 784}).to(device);
+    torch::NoGradGuard no_grad;          // inference only
+    auto output = net->forward(input);
+    std::cout << output << std::endl;
+
+    return 0;
+}
