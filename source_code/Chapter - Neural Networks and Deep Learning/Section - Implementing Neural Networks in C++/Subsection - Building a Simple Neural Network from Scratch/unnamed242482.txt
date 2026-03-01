@@ -1,0 +1,62 @@
+#include <vector>
+#include <random>
+#include <cmath>
+#include <stdexcept>
+
+class NeuralNetwork {
+public:
+    NeuralNetwork(std::size_t input_size,
+                  std::size_t hidden_size,
+                  std::size_t output_size)
+        : w_ih(hidden_size, std::vector<double>(input_size)),
+          w_ho(output_size, std::vector<double>(hidden_size)),
+          b_h(hidden_size, 0.0),
+          b_o(output_size, 0.0)
+    {
+        if (input_size == 0 || hidden_size == 0 || output_size == 0)
+            throw std::invalid_argument("Layer sizes must be positive");
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> dis(-1.0, 1.0);
+
+        auto init = [&](std::vector<double>& v) { for (auto& x : v) x = dis(gen); };
+        auto init2D = [&](std::vector<std::vector<double>>& m) {
+            for (auto& row : m) init(row);
+        };
+
+        init(b_h);
+        init(b_o);
+        init2D(w_ih);
+        init2D(w_ho);
+    }
+
+    std::vector<double> forward(const std::vector<double>& input) const
+    {
+        if (input.size() != w_ih[0].size())
+            throw std::invalid_argument("Input size mismatch");
+
+        auto sigmoid = [](double x) { return 1.0 / (1.0 + std::exp(-x)); };
+        auto dot = [&](const std::vector<double>& w, const std::vector<double>& a) {
+            double s = 0.0;
+            for (std::size_t i = 0; i < a.size(); ++i) s += w[i] * a[i];
+            return s;
+        };
+
+        std::vector<double> hidden(b_h.size());
+        for (std::size_t i = 0; i < hidden.size(); ++i)
+            hidden[i] = sigmoid(dot(w_ih[i], input) + b_h[i]);
+
+        std::vector<double> output(b_o.size());
+        for (std::size_t i = 0; i < output.size(); ++i)
+            output[i] = sigmoid(dot(w_ho[i], hidden) + b_o[i]);
+
+        return output;
+    }
+
+private:
+    std::vector<std::vector<double>> w_ih;
+    std::vector<std::vector<double>> w_ho;
+    std::vector<double> b_h;
+    std::vector<double> b_o;
+};
