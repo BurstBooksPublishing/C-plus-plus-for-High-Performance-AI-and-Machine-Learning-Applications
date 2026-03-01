@@ -1,0 +1,12 @@
+#include <vector>
+#include <cmath>
+
+std::vector<float> prune_weights(const std::vector<float>& weights, float threshold) {
+    std::vector<float> pruned_weights;
+    pruned_weights.reserve(weights.size());          // avoid reallocations
+
+    for (float w : weights) {
+        pruned_weights.push_back(std::abs(w) > threshold ? w : 0.0f);
+    }
+    return pruned_weights;
+}
