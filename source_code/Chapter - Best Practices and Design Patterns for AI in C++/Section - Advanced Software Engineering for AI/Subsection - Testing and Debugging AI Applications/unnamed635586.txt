@@ -1,0 +1,13 @@
+#include <random>
+
+namespace {
+
+// Thread-local engine to avoid contention and ensure reproducibility
+thread_local std::mt19937 rng{std::random_device{}()};
+
+} // namespace
+
+double next_random() {
+    static std::uniform_real_distribution<double> dist(0.0, 1.0);
+    return dist(rng);
+}
