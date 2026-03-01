@@ -1,0 +1,56 @@
+#include <vector>
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
+#include "tensorflow/cc/ops/loss_ops.h"
+#include "tensorflow/cc/ops/training_ops.h"
+#include "tensorflow/core/framework/tensor.h"
+
+int main() {
+    // Build the graph
+    tensorflow::Scope root = tensorflow::Scope::NewRootScope();
+
+    // Placeholders for training data
+    auto X = tensorflow::ops::Placeholder(root, tensorflow::DT_FLOAT);
+    auto Y = tensorflow::ops::Placeholder(root, tensorflow::DT_FLOAT);
+
+    // Model variables
+    auto W = tensorflow::ops::Variable(root, {1}, tensorflow::DT_FLOAT);
+    auto b = tensorflow::ops::Variable(root, {1}, tensorflow::DT_FLOAT);
+
+    // Linear model: pred = X * W + b
+    auto pred = tensorflow::ops::Add(root, tensorflow::ops::Mul(root, X, W), b);
+
+    // Mean squared error loss
+    auto loss = tensorflow::ops::ReduceMean(root,
+        tensorflow::ops::Square(root, tensorflow::ops::Sub(root, pred, Y)), {0});
+
+    // Gradient-descent optimizer
+    const float learning_rate = 0.01f;
+    std::vector<tensorflow::Output> grad_outputs;
+    TF_CHECK_OK(tensorflow::ops::AddSymbolicGradients(
+        root, {loss}, {W, b}, &grad_outputs));
+
+    auto apply_W = tensorflow::ops::ApplyGradientDescent(
+        root, W, learning_rate, {grad_outputs[0]});
+    auto apply_b = tensorflow::ops::ApplyGradientDescent(
+        root, b, learning_rate, {grad_outputs[1]});
+
+    // Initialize variables
+    auto init = tensorflow::ops::InitializeTable(root, W);
+    auto init_b = tensorflow::ops::InitializeTable(root, b);
+
+    // Run the graph
+    tensorflow::ClientSession session(root);
+    TF_CHECK_OK(session.Run({init, init_b}, nullptr));
+
+    // Dummy training step
+    tensorflow::Tensor x_tensor(tensorflow::DT_FLOAT, tensorflow::TensorShape({10}));
+    tensorflow::Tensor y_tensor(tensorflow::DT_FLOAT, tensorflow::TensorShape({10}));
+    x_tensor.flat<float>().setRandom();
+    y_tensor.flat<float>().setRandom();
+
+    std::vector<tensorflow::Tensor> outputs;
+    TF_CHECK_OK(session.Run({{X, x_tensor}, {Y, y_tensor}}, {loss, apply_W, apply_b}, &outputs));
+
+    return 0;
+}
