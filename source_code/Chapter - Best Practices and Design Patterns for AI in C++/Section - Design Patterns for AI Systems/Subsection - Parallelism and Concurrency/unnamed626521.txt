@@ -1,0 +1,21 @@
+#include <vector>
+#include <future>
+#include <functional>
+
+// Signature of the user-supplied training routine
+using TrainFunc = std::function<void(const std::vector<double>&)>;
+
+void parallel_training(const std::vector<std::vector<double>>& dataset,
+                       TrainFunc train_model = {})
+{
+    if (!train_model) return;          // nothing to do
+
+    std::vector<std::future<void>> futures;
+    futures.reserve(dataset.size());   // avoid reallocations
+
+    for (const auto& data : dataset)
+        futures.emplace_back(
+            std::async(std::launch::async, train_model, std::cref(data)));
+
+    for (auto& f : futures) f.get();   // propagate exceptions
+}
