@@ -1,0 +1,14 @@
+#include <immintrin.h>   // AVX intrinsics
+#include <iostream>      // std::cout
+
+int main() {
+    __m256d a = _mm256_set_pd(1.0, 2.0, 3.0, 4.0);   // [4,3,2,1] (reverse order)
+    __m256d b = _mm256_set_pd(5.0, 6.0, 7.0, 8.0);   // [8,7,6,5]
+    __m256d c = _mm256_add_pd(a, b);                 // element-wise addition
+
+    alignas(32) double out[4];
+    _mm256_store_pd(out, c);                         // store result to memory
+
+    std::cout << out[0] << ' ' << out[1] << ' ' << out[2] << ' ' << out[3] << '\n';
+    return 0;
+}
