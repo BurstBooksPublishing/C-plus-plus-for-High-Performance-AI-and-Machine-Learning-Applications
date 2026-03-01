@@ -1,0 +1,36 @@
+#include <torch/torch.h>
+#include <iostream>
+
+int main() {
+    // Ensure CUDA is available and select the GPU device
+    torch::Device device(torch::kCUDA);
+    if (!torch::cuda::is_available()) {
+        std::cerr << "CUDA not available; falling back to CPU\n";
+        device = torch::Device(torch::kCPU);
+    }
+
+    // Build a sequential model: 784→128→64→10 with ReLU and LogSoftmax output
+    torch::nn::Sequential model{
+        torch::nn::Linear(784, 128),
+        torch::nn::Functional(torch::relu),
+        torch::nn::Linear(128, 64),
+        torch::nn::Functional(torch::relu),
+        torch::nn::Linear(64, 10),
+        torch::nn::Functional(torch::log_softmax, /*dim=*/1)
+    };
+
+    model->to(device);
+
+    // Create synthetic batch: 64 samples of 784 features
+    torch::Tensor x = torch::randn({64, 784}, device);
+    torch::Tensor y = torch::randint(/*low=*/0, /*high=*/10, {64}, torch::kLong).to(device);
+
+    // Forward pass
+    torch::Tensor out = model->forward(x);
+
+    // Compute negative log-likelihood loss
+    torch::Tensor loss = torch::nll_loss(out, y);
+
+    std::cout << "Loss: " << loss.item<float>() << '\n';
+    return 0;
+}
