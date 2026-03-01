@@ -1,0 +1,9 @@
+bash
+#!/usr/bin/env bash
+# Detect absolute path once; works even if script is sourced or linked.
+TORCH_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/libtorch" && pwd)
+
+# Append only if the path is not already present to keep the environment clean.
+[[ ":$LIBRARY_PATH:" != *":$TORCH_DIR/lib:"* ]] && export LIBRARY_PATH="${LIBRARY_PATH:+$LIBRARY_PATH:}$TORCH_DIR/lib"
+[[ ":$LD_LIBRARY_PATH:" != *":$TORCH_DIR/lib:"* ]] && export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$TORCH_DIR/lib"
+[[ ":$CPLUS_INCLUDE_PATH:" != *":$TORCH_DIR/include:"* ]] && export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH:+$CPLUS_INCLUDE_PATH:}$TORCH_DIR/include"
