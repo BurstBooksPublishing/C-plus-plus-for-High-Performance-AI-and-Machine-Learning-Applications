@@ -1,0 +1,17 @@
+#include <arrow/api.h>
+#include <arrow/io/api.h>
+#include <memory>
+
+// Build an Int32 array and wrap it in a one-column table.
+std::shared_ptr<arrow::Table> make_sample_table() {
+    arrow::MemoryPool* pool = arrow::default_memory_pool();
+    auto builder = std::make_shared<arrow::Int32Builder>(pool);
+
+    ARROW_CHECK_OK(builder->AppendValues({1, 2, 3, 4, 5}));
+
+    std::shared_ptr<arrow::Array> array;
+    ARROW_CHECK_OK(builder->Finish(&array));
+
+    auto schema = arrow::schema({arrow::field("values", arrow::int32())});
+    return arrow::Table::Make(schema, {array});
+}
