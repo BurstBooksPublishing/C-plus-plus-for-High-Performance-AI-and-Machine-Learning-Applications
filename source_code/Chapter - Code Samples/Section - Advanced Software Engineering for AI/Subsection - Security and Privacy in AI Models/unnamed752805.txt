@@ -1,0 +1,79 @@
+#include <cstdlib>
+#include <iostream>
+#include <vector>
+
+#include <cuda_runtime.h>
+#include <tensorflow/core/framework/tensor.h>
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/public/session.h>
+
+#define CHECK_CUDA(call)                                              \
+    do {                                                              \
+        cudaError_t err = call;                                       \
+        if (err != cudaSuccess) {                                     \
+            std::cerr << "CUDA error: " << cudaGetErrorString(err)    \
+                      << " at " << __FILE__ << ":" << __LINE__        \
+                      << std::endl;                                   \
+            std::exit(EXIT_FAILURE);                                  \
+        }                                                             \
+    } while (0)
+
+int main() {
+    CHECK_CUDA(cudaSetDevice(0));
+
+    std::unique_ptr<tensorflow::Session> session;
+    {
+        tensorflow::Status s = tensorflow::NewSession(tensorflow::SessionOptions(), &session);
+        if (!s.ok()) {
+            std::cerr << s.ToString() << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+
+    tensorflow::GraphDef graph_def;
+    {
+        tensorflow::Status s = tensorflow::ReadBinaryProto(
+            tensorflow::Env::Default(), "model.pb", &graph_def);
+        if (!s.ok()) {
+            std::cerr << s.ToString() << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+
+    {
+        tensorflow::Status s = session->Create(graph_def);
+        if (!s.ok()) {
+            std::cerr << s.ToString() << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+
+    constexpr size_t kSize = 10;
+    float* d_input;
+    CHECK_CUDA(cudaMalloc(&d_input, kSize * sizeof(float)));
+
+    float h_input[kSize] = {0.0f};
+    CHECK_CUDA(cudaMemcpy(d_input, h_input, kSize * sizeof(float),
+                          cudaMemcpyHostToDevice));
+
+    tensorflow::Tensor input_tensor(tensorflow::DT_FLOAT,
+                                    tensorflow::TensorShape({static_cast<int64_t>(kSize)}));
+    auto input_flat = input_tensor.flat<float>();
+    CHECK_CUDA(cudaMemcpy(input_flat.data(), d_input, kSize * sizeof(float),
+                          cudaMemcpyDeviceToHost));
+
+    std::vector<tensorflow::Tensor> outputs;
+    {
+        tensorflow::Status s =
+            session->Run({{"input", input_tensor}}, {"output"}, {}, &outputs);
+        if (!s.ok()) {
+            std::cerr << s.ToString() << std::endl;
+            return EXIT_FAILURE;
+        }
+    }
+
+    CHECK_CUDA(cudaFree(d_input));
+    session->Close();
+
+    return EXIT_SUCCESS;
+}
