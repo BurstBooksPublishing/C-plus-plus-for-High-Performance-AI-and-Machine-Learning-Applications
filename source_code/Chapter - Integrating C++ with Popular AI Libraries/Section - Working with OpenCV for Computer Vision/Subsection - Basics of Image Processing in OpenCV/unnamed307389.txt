@@ -1,0 +1,18 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+int main(int argc, char* argv[]) {
+    const std::string path = (argc > 1) ? argv[1] : "example.jpg";
+
+    cv::Mat image = cv::imread(path, cv::IMREAD_COLOR);
+    if (image.empty()) {
+        std::cerr << "Error: cannot load '" << path << "'\n";
+        return EXIT_FAILURE;
+    }
+
+    cv::namedWindow("Image", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Image", image);
+    cv::waitKey(0);
+
+    return EXIT_SUCCESS;
+}
