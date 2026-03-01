@@ -1,0 +1,58 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+#include <stdexcept>
+
+namespace {
+
+constexpr int GAUSSIAN_KERNEL_SIZE = 5;
+constexpr double CANNY_LOW_THRESHOLD  = 50.0;
+constexpr double CANNY_HIGH_THRESHOLD = 150.0;
+constexpr int ESC_KEY = 27;
+constexpr int WAIT_MS = 30;
+
+cv::Mat preprocessFrame(const cv::Mat& input) {
+    if (input.empty()) {
+        throw std::invalid_argument("Empty frame received.");
+    }
+
+    cv::Mat gray;
+    cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
+    cv::GaussianBlur(gray, gray, {GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE}, 0);
+    cv::Mat edges;
+    cv::Canny(gray, edges, CANNY_LOW_THRESHOLD, CANNY_HIGH_THRESHOLD);
+    return edges;
+}
+
+} // anonymous namespace
+
+int main() {
+    cv::VideoCapture cap(0);
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Unable to open video source.\n";
+        return EXIT_FAILURE;
+    }
+
+    cv::namedWindow("Edges", cv::WINDOW_AUTOSIZE);
+
+    cv::Mat frame;
+    for (;;) {
+        cap >> frame;
+        if (frame.empty()) {
+            std::cerr << "Warning: Empty frame grabbed.\n";
+            break;
+        }
+
+        try {
+            cv::imshow("Edges", preprocessFrame(frame));
+        } catch (const std::exception& ex) {
+            std::cerr << "Processing error: " << ex.what() << '\n';
+            break;
+        }
+
+        if (cv::waitKey(WAIT_MS) == ESC_KEY) break;
+    }
+
+    cap.release();
+    cv::destroyAllWindows();
+    return EXIT_SUCCESS;
+}
