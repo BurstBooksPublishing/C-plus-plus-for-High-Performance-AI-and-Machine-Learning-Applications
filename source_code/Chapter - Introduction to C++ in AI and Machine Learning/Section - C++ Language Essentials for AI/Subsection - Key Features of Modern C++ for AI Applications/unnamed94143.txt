@@ -1,0 +1,7 @@
+#include <iostream>
+
+int main() {
+    auto x = 10; // x is deduced to be int
+    std::cout << x << '\n';
+    return 0;
+}
