@@ -1,0 +1,27 @@
+#include <tensorflow/core/framework/tensor.h>
+#include <tensorflow/core/public/session.h>
+#include <tensorflow/core/platform/env.h>
+#include <iostream>
+#include <vector>
+
+int main() {
+    // Build a simple graph: pred = X * 2
+    tensorflow::Scope root = tensorflow::Scope::NewRootScope();
+    auto X = tensorflow::ops::Placeholder(root.WithOpName("X"), tensorflow::DT_FLOAT);
+    auto pred = tensorflow::ops::Multiply(root.WithOpName("pred"), X, 2.0f);
+
+    std::unique_ptr<tensorflow::Session> session(tensorflow::NewSession(tensorflow::SessionOptions()));
+    tensorflow::GraphDef graph_def;
+    TF_CHECK_OK(root.ToGraphDef(&graph_def));
+    TF_CHECK_OK(session->Create(graph_def));
+
+    // Feed X = 5.0 and run
+    tensorflow::Tensor test_data(tensorflow::DT_FLOAT, tensorflow::TensorShape({1}));
+    test_data.flat<float>()(0) = 5.0f;
+
+    std::vector<tensorflow::Tensor> outputs;
+    TF_CHECK_OK(session->Run({{"X", test_data}}, {"pred"}, {}, &outputs));
+
+    std::cout << "Predicted value for X = 5.0: " << outputs[0].scalar<float>()() << std::endl;
+    return 0;
+}
