@@ -1,0 +1,20 @@
+#include <vector>
+#include <stdexcept>
+
+std::vector<std::vector<double>>
+one_hot_encode(const std::vector<int>& categories, int num_classes)
+{
+    if (num_classes <= 0)
+        throw std::invalid_argument("num_classes must be positive");
+
+    std::vector<std::vector<double>> encoded(
+        categories.size(), std::vector<double>(num_classes, 0.0));
+
+    for (size_t i = 0; i < categories.size(); ++i) {
+        int c = categories[i];
+        if (c < 0 || c >= num_classes)
+            throw std::out_of_range("category index out of bounds");
+        encoded[i][static_cast<size_t>(c)] = 1.0;
+    }
+    return encoded;
+}
