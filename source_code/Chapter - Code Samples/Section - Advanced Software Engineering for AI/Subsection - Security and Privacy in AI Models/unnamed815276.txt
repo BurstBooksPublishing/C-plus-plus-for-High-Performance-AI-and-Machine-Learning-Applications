@@ -1,0 +1,168 @@
+#include <vector>
+#include <memory>
+#include <stdexcept>
+#include <random>
+#include <numeric>
+#include <algorithm>
+
+// ---------- type aliases ----------
+using Scalar   = double;
+using Vector   = std::vector<Scalar>;
+using Matrix   = std::vector<Vector>;
+
+struct DataSample {
+    Vector features;
+    Vector label;          // one-hot for classification, scalar for regression
+};
+
+using DataSet = std::vector<DataSample>;
+
+// ---------- minimal RNG ----------
+thread_local std::mt19937 rng{std::random_device{}()};
+
+// ---------- activation ----------
+inline Scalar relu(Scalar x) { return std::max(Scalar(0), x); }
+inline Scalar reluGrad(Scalar x) { return x > 0 ? 1 : 0; }
+
+// ---------- loss ----------
+inline Scalar crossEntropy(const Vector& yPred, const Vector& yTrue) {
+    Scalar eps = 1e-12;
+    Scalar sum = 0;
+    for (size_t i = 0; i < yPred.size(); ++i)
+        sum -= yTrue[i] * std::log(yPred[i] + eps);
+    return sum;
+}
+
+// ---------- layer ----------
+struct Layer {
+    Matrix W;   // weights: rows = output dim, cols = input dim
+    Vector b;   // bias
+    Vector z;   // pre-activation
+    Vector a;   // post-activation
+    Matrix dW;  // gradients
+    Vector db;
+
+    Layer(size_t in, size_t out)
+        : W(out, Vector(in)), b(out), z(out), a(out), dW(out, Vector(in)), db(out) {
+        std::normal_distribution<Scalar> dist(0.0, std::sqrt(2.0 / in));
+        for (auto& row : W)
+            for (auto& v : row) v = dist(rng);
+        std::fill(b.begin(), b.end(), 0);
+    }
+
+    Vector forward(const Vector& x) {
+        z.assign(z.size(), 0);
+        for (size_t i = 0; i < W.size(); ++i) {
+            z[i] = b[i];
+            for (size_t j = 0; j < W[i].size(); ++j)
+                z[i] += W[i][j] * x[j];
+            a[i] = relu(z[i]);
+        }
+        return a;
+    }
+
+    Vector backward(const Vector& da, const Vector& x) {
+        Vector dx(x.size(), 0);
+        for (size_t i = 0; i < W.size(); ++i) {
+            Scalar dz = da[i] * reluGrad(z[i]);
+            db[i] += dz;
+            for (size_t j = 0; j < W[i].size(); ++j) {
+                dW[i][j] += dz * x[j];
+                dx[j]    += dz * W[i][j];
+            }
+        }
+        return dx;
+    }
+};
+
+// ---------- network ----------
+class NeuralNetwork {
+public:
+    std::vector<std::unique_ptr<Layer>> layers;
+
+    void addLayer(size_t in, size_t out) {
+        layers.emplace_back(std::make_unique<Layer>(in, out));
+    }
+
+    Vector forward(const Vector& x) {
+        Vector out = x;
+        for (auto& l : layers) out = l->forward(out);
+        return softmax(out);
+    }
+
+    Scalar computeLoss(const Vector& yPred, const Vector& yTrue) {
+        return crossEntropy(yPred, yTrue);
+    }
+
+    void backward(const Vector& yPred, const Vector& yTrue) {
+        Vector grad(yPred.size());
+        for (size_t i = 0; i < grad.size(); ++i)
+            grad[i] = yPred[i] - yTrue[i]; // dLoss/dz for softmax + CE
+        for (int i = static_cast<int>(layers.size()) - 1; i >= 0; --i) {
+            const Vector& prev = i == 0 ? lastInput : layers[i - 1]->a;
+            grad = layers[i]->backward(grad, prev);
+        }
+    }
+
+    void updateWeights(Scalar lr) {
+        for (auto& l : layers)
+            for (size_t i = 0; i < l->W.size(); ++i)
+                for (size_t j = 0; j < l->W[i].size(); ++j)
+                    l->W[i][j] -= lr * l->dW[i][j];
+        for (size_t i = 0; i < l->b.size(); ++i)
+            l->b[i] -= lr * l->db[i];
+        clearGrads();
+    }
+
+private:
+    Vector lastInput;
+
+    Vector softmax(const Vector& x) {
+        Vector out(x.size());
+        Scalar maxVal = *std::max_element(x.begin(), x.end());
+        Scalar sum = 0;
+        for (size_t i = 0; i < x.size(); ++i) {
+            out[i] = std::exp(x[i] - maxVal);
+            sum += out[i];
+        }
+        for (auto& v : out) v /= sum;
+        return out;
+    }
+
+    void clearGrads() {
+        for (auto& l : layers) {
+            for (auto& row : l->dW) std::fill(row.begin(), row.end(), 0);
+            std::fill(l->db.begin(), l->db.end(), 0);
+        }
+    }
+};
+
+// ---------- training ----------
+void trainSingleSample(const DataSample& sample,
+                       NeuralNetwork& net,
+                       Scalar lr) {
+    Vector pred = net.forward(sample.features);
+    net.backward(pred, sample.label);
+    net.updateWeights(lr);
+}
+
+void trainEpoch(DataSet& data,
+                NeuralNetwork& net,
+                Scalar lr,
+                size_t batchSize = 1) {
+    std::shuffle(data.begin(), data.end(), rng);
+    for (size_t i = 0; i < data.size(); i += batchSize) {
+        size_t end = std::min(i + batchSize, data.size());
+        for (size_t j = i; j < end; ++j)
+            trainSingleSample(data[j], net, lr);
+    }
+}
+
+void trainNeuralNetwork(DataSet& data,
+                        NeuralNetwork& net,
+                        Scalar lr,
+                        size_t epochs,
+                        size_t batchSize = 1) {
+    for (size_t e = 0; e < epochs; ++e)
+        trainEpoch(data, net, lr, batchSize);
+}
