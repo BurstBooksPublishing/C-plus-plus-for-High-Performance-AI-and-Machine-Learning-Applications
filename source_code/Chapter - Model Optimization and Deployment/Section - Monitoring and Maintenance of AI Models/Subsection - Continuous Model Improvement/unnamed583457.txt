@@ -1,0 +1,26 @@
+#include <Eigen/Dense>
+#include <stdexcept>
+
+// Multiply two Eigen matrices after validating dimensions
+Eigen::MatrixXd matrix_multiplication(const Eigen::MatrixXd& A,
+                                      const Eigen::MatrixXd& B) {
+    if (A.cols() != B.rows())
+        throw std::invalid_argument("Incompatible dimensions for multiplication");
+    return A * B;
+}
+
+void test_model() {
+    Eigen::MatrixXd A(2, 2);
+    A << 1, 2,
+         3, 4;
+    Eigen::MatrixXd B(2, 2);
+    B << 5, 6,
+         7, 8;
+    Eigen::MatrixXd expected(2, 2);
+    expected << 19, 22,
+                43, 50;
+
+    Eigen::MatrixXd result = matrix_multiplication(A, B);
+    if (!result.isApprox(expected))
+        throw std::runtime_error("Test failed: result mismatch");
+}
