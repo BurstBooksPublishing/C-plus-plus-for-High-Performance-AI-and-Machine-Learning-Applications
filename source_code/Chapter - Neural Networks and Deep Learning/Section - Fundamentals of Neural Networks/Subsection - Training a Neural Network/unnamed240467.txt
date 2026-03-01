@@ -1,0 +1,9 @@
+#include <Eigen/Dense>
+
+// Affine transformation: y = W·x + b
+Eigen::VectorXd forward(const Eigen::VectorXd& input,
+                        const Eigen::MatrixXd& weights,
+                        const Eigen::VectorXd& biases)
+{
+    return weights * input + biases;
+}
