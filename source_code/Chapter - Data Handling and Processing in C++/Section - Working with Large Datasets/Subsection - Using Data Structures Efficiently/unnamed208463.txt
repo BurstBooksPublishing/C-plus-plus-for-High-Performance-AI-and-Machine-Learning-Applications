@@ -1,0 +1,7 @@
+#include <unordered_map>
+
+int main() {
+    std::unordered_map<int, double> sparse_data;
+    sparse_data.reserve(1);               // prevent rehash for known size
+    sparse_data.emplace(42, 3.14);        // insert only non-zero element
+}
