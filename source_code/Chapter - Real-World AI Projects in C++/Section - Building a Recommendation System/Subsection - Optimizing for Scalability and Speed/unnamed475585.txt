@@ -1,0 +1,15 @@
+#include <omp.h>
+#include <vector>
+#include <stdexcept>
+
+// Assumes: extern std::size_t user_count;
+//          void compute_similarity(std::size_t idx) noexcept;
+
+void compute_all_similarities()
+{
+    if (user_count == 0) return;
+
+    #pragma omp parallel for schedule(dynamic, 64)
+    for (std::size_t i = 0; i < user_count; ++i)
+        compute_similarity(i);          // user_count must remain constant during loop
+}
