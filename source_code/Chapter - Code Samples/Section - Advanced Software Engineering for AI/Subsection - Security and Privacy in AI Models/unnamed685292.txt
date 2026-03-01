@@ -1,0 +1,34 @@
+#include <algorithm>
+#include <cmath>
+#include <numeric>
+#include <stdexcept>
+#include <vector>
+
+std::vector<double> normalize(const std::vector<double>& data) {
+    if (data.empty()) return {};
+    const auto [min_it, max_it] = std::minmax_element(data.begin(), data.end());
+    if (*min_it == *max_it) throw std::invalid_argument("constant data");
+    std::vector<double> out;
+    out.reserve(data.size());
+    for (double v : data) out.push_back((v - *min_it) / (*max_it - *min_it));
+    return out;
+}
+
+std::vector<double> standardize(const std::vector<double>& data) {
+    if (data.empty()) return {};
+    double mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
+    double sq_sum = 0.0;
+    for (double v : data) sq_sum += (v - mean) * (v - mean);
+    double stddev = std::sqrt(sq_sum / data.size());
+    if (stddev == 0.0) throw std::invalid_argument("constant data");
+    std::vector<double> out;
+    out.reserve(data.size());
+    for (double v : data) out.push_back((v - mean) / stddev);
+    return out;
+}
+
+int main() {
+    std::vector<double> data{1.0, 2.0, 3.0, 4.0, 5.0};
+    auto norm = normalize(data);
+    auto std  = standardize(data);
+}
