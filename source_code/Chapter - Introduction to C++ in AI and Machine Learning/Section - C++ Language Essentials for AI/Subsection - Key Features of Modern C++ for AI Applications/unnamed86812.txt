@@ -1,0 +1,8 @@
+#include <memory>   // std::unique_ptr
+#include <iostream> // std::cout
+
+int main() {
+    auto p = std::make_unique<int>(42); // exception-safe allocation
+    std::cout << *p << '\n';
+    return 0;
+}
