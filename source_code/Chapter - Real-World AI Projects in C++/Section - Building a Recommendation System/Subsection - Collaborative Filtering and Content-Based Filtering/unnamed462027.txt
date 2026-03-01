@@ -1,0 +1,44 @@
+#include <Eigen/Dense>
+#include <random>
+
+using Matrix = Eigen::MatrixXd;
+
+// R: sparse user-item ratings (0 = missing)
+// P: user latent features (output, size R.rows() x k)
+// Q: item latent features (output, size k x R.cols())
+// k: rank of factorization
+// alpha: learning rate
+// lambda: L2 regularization
+// iterations: training epochs
+void matrixFactorization(const Matrix& R,
+                         Matrix& P,
+                         Matrix& Q,
+                         int k,
+                         double alpha,
+                         double lambda,
+                         int iterations)
+{
+    const int users = R.rows();
+    const int items = R.cols();
+
+    // Initialize P and Q with small random values if empty
+    if (P.size() == 0) {
+        P = Matrix::Random(users, k) * 0.01;
+    }
+    if (Q.size() == 0) {
+        Q = Matrix::Random(k, items) * 0.01;
+    }
+
+    for (int iter = 0; iter < iterations; ++iter) {
+        for (int i = 0; i < users; ++i) {
+            for (int j = 0; j < items; ++j) {
+                const double r = R(i, j);
+                if (r != 0.0) {
+                    const double err = r - P.row(i).dot(Q.col(j));
+                    P.row(i) += alpha * (2 * err * Q.col(j).transpose() - lambda * P.row(i));
+                    Q.col(j) += alpha * (2 * err * P.row(i).transpose() - lambda * Q.col(j));
+                }
+            }
+        }
+    }
+}
