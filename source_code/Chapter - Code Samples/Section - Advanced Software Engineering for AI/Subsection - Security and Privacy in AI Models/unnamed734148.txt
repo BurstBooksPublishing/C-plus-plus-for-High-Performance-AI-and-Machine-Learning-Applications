@@ -1,0 +1,91 @@
+#include <cstdio>
+#include <memory>
+#include <opencv2/opencv.hpp>
+#include <tensorflow/c/c_api.h>
+
+namespace {
+
+// RAII wrappers ----------------------------------------------------------------
+struct Deleter {
+    void operator()(TF_Buffer* p)      const { if (p) TF_DeleteBuffer(p); }
+    void operator()(TF_Graph* p)       const { if (p) TF_DeleteGraph(p); }
+    void operator()(TF_Status* p)      const { if (p) TF_DeleteStatus(p); }
+    void operator()(TF_Session* p)     const { if (p) TF_CloseSession(p, TF_NewStatus()); TF_DeleteSession(p, TF_NewStatus()); }
+    void operator()(TF_SessionOptions* p) const { if (p) TF_DeleteSessionOptions(p); }
+};
+
+template<typename T>
+using tf_ptr = std::unique_ptr<std::remove_pointer_t<T>, Deleter>;
+
+tf_ptr<TF_Buffer> read_file(const char* path) {
+    FILE* f = fopen(path, "rb");
+    if (!f) return nullptr;
+    fseek(f, 0, SEEK_END);
+    size_t len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char* data = new char[len];
+    fread(data, 1, len, f);
+    fclose(f);
+    TF_Buffer* buf = TF_NewBufferFromString(data, len);
+    delete[] data;
+    return tf_ptr<TF_Buffer>(buf);
+}
+
+} // namespace
+
+int main() {
+    const char* model_path = "model.pb";
+    const char* input_name  = "input:0";
+    const char* output_name = "output:0";
+
+    tf_ptr<TF_Status>  status(TF_NewStatus());
+    tf_ptr<TF_Graph>   graph(TF_NewGraph());
+    tf_ptr<TF_SessionOptions> opts(TF_NewSessionOptions());
+    tf_ptr<TF_Buffer>  def = read_file(model_path);
+    if (!def) return 1;
+
+    TF_ImportGraphDefOptions* import_opts = TF_NewImportGraphDefOptions();
+    TF_GraphImportGraphDef(graph.get(), def.get(), import_opts, status.get());
+    TF_DeleteImportGraphDefOptions(import_opts);
+    if (TF_GetCode(status.get()) != TF_OK) return 1;
+
+    TF_Session* raw_sess = TF_NewSession(graph.get(), opts.get(), status.get());
+    tf_ptr<TF_Session> session(raw_sess);
+    if (TF_GetCode(status.get()) != TF_OK) return 1;
+
+    cv::VideoCapture cap(0);
+    if (!cap.isOpened()) return 1;
+
+    const int wanted = 224;
+    const std::vector<int64_t> dims = {1, wanted, wanted, 3};
+
+    cv::Mat frame;
+    while (cap.read(frame)) {
+        cv::Mat blob;
+        cv::resize(frame, blob, cv::Size(wanted, wanted));
+        blob.convertTo(blob, CV_32FC3, 1.0f / 255.0f);
+
+        size_t byte_size = wanted * wanted * 3 * sizeof(float);
+        TF_Tensor* input_tensor = TF_AllocateTensor(TF_FLOAT, dims.data(), dims.size(), byte_size);
+        std::memcpy(TF_TensorData(input_tensor), blob.ptr<float>(), byte_size);
+
+        std::vector<TF_Output> inputs  = {{TF_GraphOperationByName(graph.get(), input_name), 0}};
+        std::vector<TF_Tensor*> input_values = {input_tensor};
+
+        std::vector<TF_Output> outputs = {{TF_GraphOperationByName(graph.get(), output_name), 0}};
+        TF_Tensor* output_tensor = nullptr;
+        std::vector<TF_Tensor*> output_values = {output_tensor};
+
+        TF_SessionRun(session.get(), nullptr,
+                      inputs.data(), input_values.data(), inputs.size(),
+                      outputs.data(), output_values.data(), outputs.size(),
+                      nullptr, 0, nullptr, status.get());
+
+        TF_DeleteTensor(input_tensor);
+        if (output_values[0]) TF_DeleteTensor(output_values[0]);
+
+        cv::imshow("Real-time Video Analysis", frame);
+        if (cv::waitKey(1) == 27) break;
+    }
+    return 0;
+}
