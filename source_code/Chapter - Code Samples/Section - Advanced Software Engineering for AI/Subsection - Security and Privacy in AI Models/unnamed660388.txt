@@ -1,0 +1,78 @@
+cmake
+cmake_minimum_required(VERSION 3.16)
+project(AIProject
+        VERSION 1.0.0
+        DESCRIPTION "Production-ready AI inference toolkit"
+        HOMEPAGE_URL "https://example.com/ai"
+        LANGUAGES CXX)
+
+# --- Build options -----------------------------------------------------------
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(BUILD_TESTS       "Build unit tests"       ON)
+option(BUILD_EXAMPLES    "Build example programs" ON)
+
+# --- Global settings ---------------------------------------------------------
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# --- Find dependencies -------------------------------------------------------
+find_package(OpenCV 4 REQUIRED COMPONENTS core imgproc highgui)
+find_package(Threads REQUIRED)
+
+# --- Interface library for compile definitions -------------------------------
+add_library(ai_project_options INTERFACE)
+add_library(ai_project_warnings INTERFACE)
+
+target_compile_features(ai_project_options INTERFACE cxx_std_17)
+target_compile_options(ai_project_warnings INTERFACE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4>
+)
+
+# --- Core utility library ----------------------------------------------------
+add_library(AIUtils STATIC
+    src/ai_utils.cpp
+    include/ai_utils.hpp
+)
+target_include_directories(AIUtils
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(AIUtils
+    PUBLIC
+        ai_project_options
+        ai_project_warnings
+        opencv_core
+        opencv_imgproc
+        Threads::Threads
+)
+
+# --- Main executable ---------------------------------------------------------
+add_executable(AIApp src/main.cpp)
+target_link_libraries(AIApp PRIVATE AIUtils)
+
+# --- Testing -----------------------------------------------------------------
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+# --- Installation ------------------------------------------------------------
+include(GNUInstallDirs)
+install(TARGETS AIUtils AIApp
+        EXPORT AIProjectTargets
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# --- Export for downstream consumption ---------------------------------------
+install(EXPORT AIProjectTargets
+        FILE AIProjectTargets.cmake
+        NAMESPACE AIProject::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/AIProject
+)
