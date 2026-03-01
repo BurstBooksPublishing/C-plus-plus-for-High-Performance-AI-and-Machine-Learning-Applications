@@ -1,0 +1,46 @@
+#include <tensorflow/cc/client/client_session.h>
+#include <tensorflow/cc/saved_model/loader.h>
+#include <tensorflow/cc/saved_model/tag_constants.h>
+#include <tensorflow/core/framework/tensor.h>
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/platform/status.h>
+#include <tensorflow/core/public/session.h>
+
+#include <cstdlib>
+#include <iostream>
+#include <vector>
+
+int main() {
+    const std::string export_dir = "path/to/saved_model";
+    tensorflow::SavedModelBundle bundle;
+    tensorflow::Status status =
+        tensorflow::LoadSavedModel(tensorflow::SessionOptions(),
+                                   tensorflow::RunOptions(),
+                                   export_dir,
+                                   {tensorflow::kSavedModelTagServe},
+                                   &bundle);
+    if (!status.ok()) {
+        std::cerr << "Failed to load model: " << status.ToString() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    tensorflow::Tensor input_tensor(tensorflow::DT_FLOAT,
+                                    tensorflow::TensorShape({1, 224, 224, 3}));
+    auto input_mapped = input_tensor.tensor<float, 4>();
+    // Populate tensor with normalized image data (example: zeros)
+    input_mapped.setZero();
+
+    std::vector<tensorflow::Tensor> outputs;
+    status = bundle.GetSession()->Run(
+        {{"serving_default_input_1", input_tensor}},  // adjust input name as needed
+        {"Identity"},                                 // adjust output name as needed
+        {},
+        &outputs);
+    if (!status.ok()) {
+        std::cerr << "Inference failed: " << status.ToString() << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // outputs[0] contains the model predictions
+    return EXIT_SUCCESS;
+}
