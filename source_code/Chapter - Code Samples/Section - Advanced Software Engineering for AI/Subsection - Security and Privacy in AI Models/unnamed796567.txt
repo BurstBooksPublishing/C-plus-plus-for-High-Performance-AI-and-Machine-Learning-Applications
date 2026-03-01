@@ -1,0 +1,66 @@
+#include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <random>
+#include <vector>
+
+constexpr int GRID_SIZE = 5;
+constexpr int NUM_ACTIONS = 4;
+constexpr double DISCOUNT = 0.9;
+constexpr double ALPHA = 0.1;
+constexpr double EPS = 0.1;
+constexpr int EPISODES = 1000;
+
+using QTable = std::vector<std::vector<std::array<double, NUM_ACTIONS>>>;
+
+int chooseAction(int x, int y, const QTable& q, std::mt19937& gen) {
+    std::uniform_real_distribution<> dist(0.0, 1.0);
+    if (dist(gen) < EPS) {
+        std::uniform_int_distribution<int> aDist(0, NUM_ACTIONS - 1);
+        return aDist(gen);
+    }
+    auto& row = q[x][y];
+    return std::distance(row.begin(), std::max_element(row.begin(), row.end()));
+}
+
+void updateQ(QTable& q, int x, int y, int a, int nx, int ny, double r) {
+    double best = *std::max_element(q[nx][ny].begin(), q[nx][ny].end());
+    q[x][y][a] += ALPHA * (r + DISCOUNT * best - q[x][y][a]);
+}
+
+int main() {
+    std::vector<std::vector<double>> reward(GRID_SIZE,
+                                            std::vector<double>(GRID_SIZE, -1));
+    reward[0][GRID_SIZE - 1] = 10;
+
+    QTable q(GRID_SIZE, std::vector<std::array<double, NUM_ACTIONS>>(
+                            GRID_SIZE, std::array<double, NUM_ACTIONS>{0}));
+
+    std::mt19937 rng(static_cast<unsigned>(std::chrono::steady_clock::now()
+                                               .time_since_epoch()
+                                               .count()));
+
+    for (int ep = 0; ep < EPISODES; ++ep) {
+        int x = 0, y = 0, steps = 0;
+        while (true) {
+            int a = chooseAction(x, y, q, rng);
+            int nx = x, ny = y;
+            if (a == 0 && x > 0) --nx;
+            else if (a == 1 && x < GRID_SIZE - 1) ++nx;
+            else if (a == 2 && y > 0) --ny;
+            else if (a == 3 && y < GRID_SIZE - 1) ++ny;
+
+            double r = reward[nx][ny];
+            updateQ(q, x, y, a, nx, ny, r);
+            x = nx;
+            y = ny;
+            ++steps;
+
+            if (r == 10) {
+                std::cout << "Goal reached in " << steps << " steps\n";
+                break;
+            }
+        }
+    }
+    return 0;
+}
