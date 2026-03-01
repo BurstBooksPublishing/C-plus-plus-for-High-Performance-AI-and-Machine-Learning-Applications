@@ -1,0 +1,8 @@
+#include <memory>   // std::unique_ptr, std::make_unique
+#include <utility>  // std::move
+
+// Thread-safe, reusable square functor
+static constexpr auto square = [](int x) noexcept { return x * x; };
+
+// Explicit type for clarity; value initialized via make_unique
+std::unique_ptr<int> ptr = std::make_unique<int>(42);
