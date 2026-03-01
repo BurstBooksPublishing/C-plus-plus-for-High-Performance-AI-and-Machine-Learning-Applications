@@ -1,0 +1,49 @@
+#include <iostream>
+#include <vector>
+#include <random>
+#include <stdexcept>
+
+class SingleLayerPerceptron {
+public:
+    SingleLayerPerceptron(std::size_t input_size, double learning_rate = 0.01)
+        : gen_(std::random_device{}()), dist_(-1.0, 1.0), learning_rate_(learning_rate) {
+        if (input_size == 0) throw std::invalid_argument("input_size must be > 0");
+        weights_.resize(input_size);
+        for (double& w : weights_) w = dist_(gen_);
+        bias_ = dist_(gen_);
+    }
+
+    int predict(const std::vector<double>& inputs) const {
+        if (inputs.size() != weights_.size()) throw std::invalid_argument("input size mismatch");
+        double sum = bias_;
+        for (std::size_t i = 0; i < inputs.size(); ++i) sum += inputs[i] * weights_[i];
+        return sum >= 0.0 ? 1 : 0;
+    }
+
+    void train(const std::vector<double>& inputs, int target) {
+        const int pred = predict(inputs);
+        const int error = target - pred;
+        for (std::size_t i = 0; i < weights_.size(); ++i) weights_[i] += learning_rate_ * error * inputs[i];
+        bias_ += learning_rate_ * error;
+    }
+
+private:
+    std::vector<double> weights_;
+    double bias_;
+    double learning_rate_;
+    mutable std::mt19937 gen_;
+    std::uniform_real_distribution<double> dist_;
+};
+
+int main() {
+    const std::vector<std::vector<double>> inputs = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+    const std::vector<int> targets = {0, 0, 0, 1};
+
+    SingleLayerPerceptron perceptron(2);
+    for (int epoch = 0; epoch < 100; ++epoch)
+        for (std::size_t i = 0; i < inputs.size(); ++i)
+            perceptron.train(inputs[i], targets[i]);
+
+    for (const auto& in : inputs)
+        std::cout << in[0] << ' ' << in[1] << " -> " << perceptron.predict(in) << '\n';
+}
