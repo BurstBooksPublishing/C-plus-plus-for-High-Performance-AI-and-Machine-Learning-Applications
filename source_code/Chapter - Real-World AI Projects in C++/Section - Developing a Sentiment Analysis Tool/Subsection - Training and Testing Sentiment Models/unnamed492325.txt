@@ -1,0 +1,41 @@
+#include <string>
+#include <vector>
+#include <unordered_map>
+
+class NaiveBayes {
+public:
+    void train(const std::vector<std::vector<std::string>>& texts,
+               const std::vector<int>& labels);
+
+private:
+    std::unordered_map<int, double> prior;
+    std::unordered_map<std::string, std::unordered_map<int, double>> likelihood;
+    std::unordered_map<int, int> totalWords;
+};
+
+void NaiveBayes::train(const std::vector<std::vector<std::string>>& texts,
+                       const std::vector<int>& labels)
+{
+    // Count label occurrences
+    for (int label : labels) {
+        ++prior[label];
+    }
+    // Normalize to probabilities
+    for (auto& [label, count] : prior) {
+        count /= labels.size();
+    }
+
+    // Count word occurrences per label
+    for (size_t i = 0; i < texts.size(); ++i) {
+        for (const std::string& word : texts[i]) {
+            ++likelihood[word][labels[i]];
+            ++totalWords[labels[i]];
+        }
+    }
+    // Normalize to conditional probabilities
+    for (auto& [word, labelCounts] : likelihood) {
+        for (auto& [label, count] : labelCounts) {
+            count /= totalWords[label];
+        }
+    }
+}
