@@ -1,0 +1,26 @@
+cmake
+cmake_minimum_required(VERSION 3.18)  # First release with native CUDA language support
+project(MyProject LANGUAGES CXX CUDA)
+
+# Discover the CUDA Toolkit and enable CMake’s CUDA language support
+find_package(CUDAToolkit REQUIRED)
+
+# Build for all locally-detected GPUs plus a compatible PTX fallback
+include(${CMAKE_CURRENT_LIST_DIR}/cmake/utils/AutoCudaArch.cmake)
+auto_cuda_arch()
+
+# Provide an option so users can override architectures from the command line
+# Example: cmake -DMY_CUDA_ARCHS="70;75;80" ..
+if(NOT DEFINED MY_CUDA_ARCHS)
+    set(MY_CUDA_ARCHS "${CMAKE_CUDA_ARCHITECTURES}")
+endif()
+
+set(CMAKE_CUDA_ARCHITECTURES ${MY_CUDA_ARCHS})
+
+# Strict, portable compiler settings
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_EXTENSIONS OFF)
+
+# Export compile commands for tools (clangd, etc.)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
