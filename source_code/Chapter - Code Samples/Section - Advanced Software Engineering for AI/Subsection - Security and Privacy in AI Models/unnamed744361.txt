@@ -1,0 +1,54 @@
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include <iostream>
+#include <numeric>
+#include <random>
+#include <stdexcept>
+#include <vector>
+#include <chrono>
+
+using Scalar = double;
+using Vector = std::vector<Scalar>;
+
+// Update weights in-place with a single gradient step
+void sgdStep(Vector& weights, const Vector& gradients, Scalar lr) {
+    if (weights.size() != gradients.size())
+        throw std::invalid_argument("Size mismatch");
+    std::transform(weights.begin(), weights.end(), gradients.begin(),
+                   weights.begin(),
+                   [lr](Scalar w, Scalar g) { return w - lr * g; });
+}
+
+// Compute synthetic gradient for a quadratic + sin regularizer
+Vector computeGradients(const Vector& weights) {
+    Vector g(weights.size());
+    std::transform(weights.begin(), weights.end(), g.begin(),
+                   [](Scalar w) { return Scalar(2) * w + std::sin(w); });
+    return g;
+}
+
+// Run optimization for fixed iterations; return elapsed seconds
+Scalar train(Vector& weights, Scalar lr, std::size_t epochs) {
+    const auto start = std::chrono::steady_clock::now();
+    for (std::size_t i = 0; i < epochs; ++i) {
+        const Vector g = computeGradients(weights);
+        sgdStep(weights, g, lr);
+    }
+    const auto end = std::chrono::steady_clock::now();
+    return std::chrono::duration<Scalar>(end - start).count();
+}
+
+int main() {
+    constexpr Scalar lr = 0.01;
+    constexpr std::size_t epochs = 1000;
+    Vector weights{1.0, 2.0, 3.0, 4.0, 5.0};
+
+    const Scalar elapsed = train(weights, lr, epochs);
+
+    std::cout << "Training completed in " << elapsed << " seconds\n";
+    std::cout << "Final weights: ";
+    for (Scalar w : weights) std::cout << w << ' ';
+    std::cout << '\n';
+}
