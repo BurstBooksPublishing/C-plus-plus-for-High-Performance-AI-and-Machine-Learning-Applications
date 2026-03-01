@@ -1,0 +1,14 @@
+#include <Eigen/Core>
+#include <stdexcept>
+
+void gradientBasedPruning(Eigen::MatrixXd& weights,
+                          const Eigen::MatrixXd& gradients,
+                          const double threshold)
+{
+    if (threshold < 0.0)               throw std::invalid_argument("threshold must be non-negative");
+    if (weights.rows() != gradients.rows() || weights.cols() != gradients.cols())
+        throw std::invalid_argument("weights and gradients must have identical dimensions");
+
+    // Zero-out weights whose corresponding gradient magnitude is below the threshold
+    weights.array() *= (gradients.array().abs() >= threshold).cast<double>();
+}
