@@ -1,0 +1,42 @@
+#include <chrono>
+#include <iostream>
+#include <thread>
+#include <atomic>
+#include <exception>
+
+namespace {
+    constexpr auto SENSOR_DELAY   = std::chrono::milliseconds(100);
+    constexpr auto CONTROL_DELAY  = std::chrono::milliseconds(50);
+    std::atomic<bool> shutdown{false};          // Signal threads to exit
+}
+
+void sensorProcessing() noexcept {
+    while (!shutdown.load(std::memory_order_acquire)) {
+        std::this_thread::sleep_for(SENSOR_DELAY);
+        std::cout << "Sensor data processed.\n";
+    }
+}
+
+void controlLogic() noexcept {
+    while (!shutdown.load(std::memory_order_acquire)) {
+        std::this_thread::sleep_for(CONTROL_DELAY);
+        std::cout << "Control logic executed.\n";
+    }
+}
+
+int main() {
+    try {
+        std::thread sensorThread(sensorProcessing);
+        std::thread controlThread(controlLogic);
+
+        std::cin.get();                 // Wait for user to press <Enter>
+        shutdown.store(true, std::memory_order_release);
+
+        sensorThread.join();
+        controlThread.join();
+    } catch (const std::exception& ex) {
+        std::cerr << "Fatal: " << ex.what() << '\n';
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
