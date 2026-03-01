@@ -1,0 +1,15 @@
+#include <Eigen/Dense>
+#include <iostream>
+
+int main() {
+    // Fixed-size matrices for maximum speed; adjust sizes as needed
+    Eigen::Matrix<double, 1000, 1000> A, B, C;
+
+    A.setRandom();
+    B.setRandom();
+
+    C = A * B;  // Eigen uses optimized BLAS under the hood
+
+    std::cout << C(0, 0) << '\n';  // Touch result to prevent dead-code elimination
+    return 0;
+}
