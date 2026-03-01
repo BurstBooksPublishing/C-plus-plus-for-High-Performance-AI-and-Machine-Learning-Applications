@@ -1,0 +1,17 @@
+bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure we are on the main branch and working tree is clean
+git checkout main
+git pull --ff-only origin main
+if [[ -n $(git status --porcelain) ]]; then
+  echo "Working directory not clean; aborting." >&2
+  exit 1
+fi
+
+# Create annotated tag for v1.0.0
+git tag -a v1.0.0 -m "Initial release of AI model"
+
+# Push tag to remote
+git push origin v1.0.0
