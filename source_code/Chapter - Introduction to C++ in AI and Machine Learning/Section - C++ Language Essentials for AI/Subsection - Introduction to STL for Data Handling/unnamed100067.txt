@@ -1,0 +1,7 @@
+#include <map>
+#include <string>
+
+std::map<std::string, double> parameters = {
+    {"learning_rate", 0.01},
+    {"momentum",      0.9}
+};
