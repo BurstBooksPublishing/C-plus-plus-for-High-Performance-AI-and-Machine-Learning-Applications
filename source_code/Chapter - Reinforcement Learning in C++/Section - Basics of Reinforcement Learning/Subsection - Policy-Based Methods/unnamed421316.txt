@@ -1,0 +1,49 @@
+#include <Eigen/Dense>
+#include <vector>
+#include <random>
+
+using Eigen::VectorXd;
+using Eigen::MatrixXd;
+
+class REINFORCE {
+public:
+    REINFORCE(int state_dim, int action_dim, double learning_rate, double gamma = 0.99)
+        : theta_(MatrixXd::Random(state_dim, action_dim)),
+          alpha_(learning_rate),
+          gamma_(gamma),
+          gen_(std::random_device{}()) {}
+
+    int sample_action(const VectorXd& state) {
+        VectorXd logits = theta_.transpose() * state;
+        VectorXd probs = softmax(logits);
+        std::discrete_distribution<int> dist(probs.data(), probs.data() + probs.size());
+        return dist(gen_);
+    }
+
+    void update(const std::vector<VectorXd>& states,
+                const std::vector<int>& actions,
+                const std::vector<double>& rewards) {
+        double G = 0.0;
+        MatrixXd grad = MatrixXd::Zero(theta_.rows(), theta_.cols());
+        for (int t = states.size() - 1; t >= 0; --t) {
+            G = rewards[t] + gamma_ * G;
+            VectorXd logits = theta_.transpose() * states[t];
+            VectorXd probs = softmax(logits);
+            VectorXd d_log_pi = -probs;
+            d_log_pi(actions[t]) += 1.0;
+            grad += states[t] * d_log_pi.transpose() * G;
+        }
+        theta_ += alpha_ * grad;
+    }
+
+private:
+    MatrixXd theta_;
+    double alpha_;
+    double gamma_;
+    std::mt19937 gen_;
+
+    VectorXd softmax(const VectorXd& x) {
+        VectorXd exp_x = (x.array() - x.maxCoeff()).exp();
+        return exp_x / exp_x.sum();
+    }
+};
