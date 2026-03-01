@@ -1,0 +1,17 @@
+#include <algorithm>
+#include <cstddef>
+
+constexpr std::size_t BLOCK_SIZE = 32;
+
+template <typename Matrix, typename F>
+void blocked_for_each(Matrix& m, std::size_t n, F&& process) {
+    for (std::size_t i = 0; i < n; i += BLOCK_SIZE) {
+        const std::size_t i_end = std::min(i + BLOCK_SIZE, n);
+        for (std::size_t j = 0; j < n; j += BLOCK_SIZE) {
+            const std::size_t j_end = std::min(j + BLOCK_SIZE, n);
+            for (std::size_t ii = i; ii < i_end; ++ii)
+                for (std::size_t jj = j; jj < j_end; ++jj)
+                    m[ii][jj] = process(m[ii][jj]);
+        }
+    }
+}
