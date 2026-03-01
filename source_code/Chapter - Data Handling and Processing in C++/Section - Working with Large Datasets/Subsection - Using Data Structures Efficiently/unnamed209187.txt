@@ -1,0 +1,6 @@
+#include <Eigen/Dense>
+
+Eigen::MatrixXd buildZeroMatrix(std::size_t rows, std::size_t cols)
+{
+    return Eigen::MatrixXd::Zero(rows, cols);   // zero-initialized, NRVO-elided
+}
