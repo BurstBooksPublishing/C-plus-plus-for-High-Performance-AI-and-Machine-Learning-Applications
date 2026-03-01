@@ -1,0 +1,38 @@
+#include <arrow/api.h>
+#include <arrow/tensor.h>
+#include <tensorflow/core/framework/tensor.h>
+#include <arrow/util/key_value_metadata.h>
+
+// Convert Arrow Table to TensorFlow Tensor
+arrow::Result<tensorflow::Tensor> ArrowTableToTfTensor(const std::shared_ptr<arrow::Table>& table) {
+    // Ensure single column of fixed-width type
+    if (table->num_columns() != 1) {
+        return arrow::Status::Invalid("Table must have exactly one column");
+    }
+    const auto& column = table->column(0);
+    const auto& type = column->type();
+    if (!arrow::is_fixed_width(type->id())) {
+        return arrow::Status::Invalid("Column must be fixed-width type");
+    }
+
+    // Combine chunks into single RecordBatch
+    ARROW_ASSIGN_OR_RAISE(auto batch, table->CombineChunksToBatch());
+
+    // Export RecordBatch to Arrow Tensor
+    ARROW_ASSIGN_OR_RAISE(auto tensor, arrow::Tensor::Make(type, batch->column_data(0)->buffers[1], {batch->num_rows()}));
+
+    // Map Arrow type to TensorFlow type
+    tensorflow::DataType tf_type;
+    switch (type->id()) {
+        case arrow::Type::FLOAT: tf_type = tensorflow::DT_FLOAT; break;
+        case arrow::Type::DOUBLE: tf_type = tensorflow::DT_DOUBLE; break;
+        case arrow::Type::INT32: tf_type = tensorflow::DT_INT32; break;
+        case arrow::Type::INT64: tf_type = tensorflow::DT_INT64; break;
+        default: return arrow::Status::NotImplemented("Unsupported Arrow type");
+    }
+
+    // Create TensorFlow Tensor and copy data
+    tensorflow::Tensor tf_tensor(tf_type, {tensor->shape()[0]});
+    std::memcpy(tf_tensor.data(), tensor->raw_data(), tensor->size());
+    return tf_tensor;
+}
