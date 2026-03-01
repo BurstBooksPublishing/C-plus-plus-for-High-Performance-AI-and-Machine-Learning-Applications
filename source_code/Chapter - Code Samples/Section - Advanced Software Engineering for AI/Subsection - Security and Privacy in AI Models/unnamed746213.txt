@@ -1,0 +1,30 @@
+#include <immintrin.h>
+#include <iostream>
+#include <vector>
+#include <cstddef>
+#include <stdexcept>
+
+void vectorized_add(const float* a, const float* b, float* result, std::size_t size) {
+    if (!a || !b || !result) throw std::invalid_argument("Null pointer");
+    const std::size_t simd_width = 8;
+    std::size_t i = 0;
+
+    for (; i + simd_width <= size; i += simd_width) {
+        __m256 va = _mm256_loadu_ps(&a[i]);
+        __m256 vb = _mm256_loadu_ps(&b[i]);
+        __m256 vr = _mm256_add_ps(va, vb);
+        _mm256_storeu_ps(&result[i], vr);
+    }
+
+    for (; i < size; ++i) result[i] = a[i] + b[i];
+}
+
+int main() {
+    const std::size_t size = 1'000'000;
+    std::vector<float> a(size, 1.0f);
+    std::vector<float> b(size, 2.0f);
+    std::vector<float> result(size);
+
+    vectorized_add(a.data(), b.data(), result.data(), size);
+    std::cout << result[0] << '\n';
+}
