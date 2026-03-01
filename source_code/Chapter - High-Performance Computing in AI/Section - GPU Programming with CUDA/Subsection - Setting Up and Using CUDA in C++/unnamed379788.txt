@@ -1,0 +1,18 @@
+#include <cublas_v2.h>
+#include <cuda_runtime.h>
+#include <iostream>
+
+int main() {
+    cublasHandle_t handle{};
+    cublasStatus_t stat = cublasCreate(&handle);
+    if (stat != CUBLAS_STATUS_SUCCESS) {
+        std::cerr << "cuBLAS create failed: " << stat << "\n";
+        return EXIT_FAILURE;
+    }
+
+    // cuBLAS calls go here
+
+    cublasDestroy(handle);
+    cudaDeviceReset();          // flush profiling data
+    return EXIT_SUCCESS;
+}
