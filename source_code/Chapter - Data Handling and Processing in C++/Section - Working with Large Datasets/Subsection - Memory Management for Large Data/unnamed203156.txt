@@ -1,0 +1,5 @@
+#include <memory>   // std::unique_ptr
+#include <cstddef>  // std::size_t
+
+// Use std::make_unique for exception-safe allocation and prefer std::size_t for sizes
+auto large_data = std::make_unique<double[]>(1'000'000);
