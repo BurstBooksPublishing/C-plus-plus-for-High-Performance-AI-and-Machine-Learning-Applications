@@ -1,0 +1,35 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+#include <filesystem>
+
+int main(int argc, char* argv[]) {
+    namespace fs = std::filesystem;
+
+    const std::string path = (argc > 1) ? argv[1] : "example.jpg";
+    if (!fs::exists(path)) {
+        std::cerr << "Error: File not found: " << path << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    cv::Mat image = cv::imread(path, cv::IMREAD_COLOR);
+    if (image.empty()) {
+        std::cerr << "Error: Cannot decode image: " << path << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    cv::Mat gray;
+    cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+
+    cv::Mat blurred;
+    cv::GaussianBlur(gray, blurred, cv::Size(5, 5), 0);
+
+    cv::Mat edges;
+    cv::Canny(blurred, edges, 50, 150);
+
+    cv::imshow("Original", image);
+    cv::imshow("Edges", edges);
+    cv::waitKey(0);
+    cv::destroyAllWindows();
+
+    return EXIT_SUCCESS;
+}
