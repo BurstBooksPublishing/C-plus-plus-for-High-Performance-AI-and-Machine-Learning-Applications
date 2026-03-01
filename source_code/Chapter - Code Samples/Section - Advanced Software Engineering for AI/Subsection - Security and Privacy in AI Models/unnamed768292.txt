@@ -1,0 +1,142 @@
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <iostream>
+#include <random>
+#include <stdexcept>
+#include <tuple>
+#include <vector>
+
+class QNetwork {
+public:
+    QNetwork(std::size_t state_size, std::size_t action_size)
+        : state_size_(state_size), action_size_(action_size),
+          weights_(state_size, std::vector<double>(action_size)) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> dis(-1.0, 1.0);
+        for (auto& row : weights_)
+            for (auto& w : row) w = dis(gen);
+    }
+
+    std::vector<double> predict(const std::vector<double>& state) const {
+        if (state.size() != state_size_) throw std::invalid_argument("state size mismatch");
+        std::vector<double> q(action_size_, 0.0);
+        for (std::size_t a = 0; a < action_size_; ++a)
+            for (std::size_t s = 0; s < state_size_; ++s)
+                q[a] += state[s] * weights_[s][a];
+        return q;
+    }
+
+    void update(const std::vector<double>& state,
+                const std::vector<double>& target,
+                double lr) {
+        if (state.size() != state_size_ || target.size() != action_size_)
+            throw std::invalid_argument("dimension mismatch");
+        auto q = predict(state);
+        for (std::size_t a = 0; a < action_size_; ++a) {
+            double err = target[a] - q[a];
+            for (std::size_t s = 0; s < state_size_; ++s)
+                weights_[s][a] += lr * err * state[s];
+        }
+    }
+
+    QNetwork& operator=(const QNetwork& other) {
+        state_size_ = other.state_size_;
+        action_size_ = other.action_size_;
+        weights_ = other.weights_;
+        return *this;
+    }
+
+private:
+    std::size_t state_size_, action_size_;
+    std::vector<std::vector<double>> weights_;
+};
+
+class ReplayBuffer {
+public:
+    using Transition = std::tuple<std::vector<double>, int, double, std::vector<double>, bool>;
+    ReplayBuffer(std::size_t capacity) : capacity_(capacity), rng_(std::random_device{}()) {}
+
+    void add(const std::vector<double>& s, int a, double r,
+             const std::vector<double>& s2, bool d) {
+        if (buffer_.size() < capacity_) buffer_.emplace_back(s, a, r, s2, d);
+        else buffer_[pos_] = {s, a, r, s2, d};
+        pos_ = (pos_ + 1) % capacity_;
+    }
+
+    std::vector<Transition> sample(std::size_t batch_size) {
+        if (buffer_.empty()) return {};
+        batch_size = std::min(batch_size, buffer_.size());
+        std::vector<Transition> out;
+        std::sample(buffer_.begin(), buffer_.end(), std::back_inserter(out),
+                    batch_size, rng_);
+        return out;
+    }
+
+private:
+    std::size_t capacity_, pos_ = 0;
+    std::vector<Transition> buffer_;
+    std::mt19937 rng_;
+};
+
+class DQNAgent {
+public:
+    DQNAgent(std::size_t state_size,
+             std::size_t action_size,
+             double gamma,
+             double epsilon,
+             double epsilon_decay,
+             double learning_rate,
+             std::size_t buffer_capacity = 10000)
+        : state_size_(state_size),
+          action_size_(action_size),
+          gamma_(gamma),
+          epsilon_(epsilon),
+          epsilon_decay_(epsilon_decay),
+          learning_rate_(learning_rate),
+          qnet_(state_size, action_size),
+          tgtnet_(state_size, action_size),
+          buffer_(buffer_capacity) {}
+
+    int act(const std::vector<double>& state) {
+        std::uniform_real_distribution<double> dist(0.0, 1.0);
+        if (dist(rng_) < epsilon_) return std::uniform_int_distribution<int>(0, action_size_ - 1)(rng_);
+        auto q = qnet_.predict(state);
+        return std::distance(q.begin(), std::max_element(q.begin(), q.end()));
+    }
+
+    void store(const std::vector<double>& s, int a, double r,
+               const std::vector<double>& s2, bool d) {
+        buffer_.add(s, a, r, s2, d);
+    }
+
+    void train(std::size_t batch_size) {
+        auto batch = buffer_.sample(batch_size);
+        for (const auto& [s, a, r, s2, d] : batch) {
+            auto target = qnet_.predict(s);
+            if (d) target[a] = r;
+            else {
+                auto q_next = tgtnet_.predict(s2);
+                target[a] = r + gamma_ * *std::max_element(q_next.begin(), q_next.end());
+            }
+            qnet_.update(s, target, learning_rate_);
+        }
+        epsilon_ *= epsilon_decay_;
+    }
+
+    void sync_target() { tgtnet_ = qnet_; }
+
+private:
+    std::size_t state_size_, action_size_;
+    double gamma_, epsilon_, epsilon_decay_, learning_rate_;
+    QNetwork qnet_, tgtnet_;
+    ReplayBuffer buffer_;
+    std::mt19937 rng_{std::random_device{}()};
+};
+
+int main() {
+    DQNAgent agent(4, 2, 0.99, 1.0, 0.995, 0.001);
+    std::vector<double> state{1.0, 0.0, 0.0, 0.0};
+    std::cout << "Chosen action: " << agent.act(state) << '\n';
+}
