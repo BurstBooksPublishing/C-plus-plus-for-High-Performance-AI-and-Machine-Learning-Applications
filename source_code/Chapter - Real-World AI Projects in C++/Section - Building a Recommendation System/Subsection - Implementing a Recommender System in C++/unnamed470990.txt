@@ -1,0 +1,33 @@
+#include <vector>
+#include <tuple>
+
+using Tuple = std::tuple<size_t, size_t, float>;
+using Data  = std::vector<Tuple>;
+
+void train(const Data& interactions,
+           std::vector<std::vector<float>>& user_matrix,
+           std::vector<std::vector<float>>& item_matrix,
+           size_t latent_dim)
+{
+    constexpr float lr   = 0.01f;
+    constexpr float reg  = 0.1f;
+    constexpr int   max_iter = 1000;
+
+    for (int iter = 0; iter < max_iter; ++iter) {
+        for (const auto& [u, i, r] : interactions) {
+            float pred = 0.0f;
+            for (size_t k = 0; k < latent_dim; ++k)
+                pred += user_matrix[u][k] * item_matrix[i][k];
+
+            float err = r - pred;
+
+            for (size_t k = 0; k < latent_dim; ++k) {
+                float uk = user_matrix[u][k];
+                float ik = item_matrix[i][k];
+
+                user_matrix[u][k] += lr * (err * ik - reg * uk);
+                item_matrix[i][k] += lr * (err * uk - reg * ik);
+            }
+        }
+    }
+}
