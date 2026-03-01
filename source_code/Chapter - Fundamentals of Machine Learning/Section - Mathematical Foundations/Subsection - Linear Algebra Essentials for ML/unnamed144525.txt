@@ -1,0 +1,6 @@
+#include <Eigen/Dense>
+
+Eigen::VectorXd v(3);
+v << 1.0, 2.0, 3.0;
+
+const double norm = v.norm();
