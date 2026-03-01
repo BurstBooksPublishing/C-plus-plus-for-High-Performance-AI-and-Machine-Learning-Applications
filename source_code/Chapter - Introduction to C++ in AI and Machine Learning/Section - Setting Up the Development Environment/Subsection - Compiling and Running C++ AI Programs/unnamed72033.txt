@@ -1,0 +1,127 @@
+#include <chrono>
+#include <cstdlib>
+#include <iostream>
+#include <random>
+#include <vector>
+
+// Minimal AI demo: builds a random forest of tiny trees and classifies one sample.
+// Compile: g++ -std=c++17 -O3 -DNDEBUG ai_program.cpp -o ai_program
+
+namespace {
+
+using Sample = std::vector<double>;
+using Dataset = std::vector<Sample>;
+
+// ---------- Random generator ----------
+thread_local std::mt19937 rng{std::random_device{}()};
+
+// ---------- Decision tree ----------
+struct Node {
+    int feature = -1;          // -1 → leaf
+    double threshold = 0.0;
+    int prediction = 0;        // valid only for leaf
+    Node* left = nullptr;
+    Node* right = nullptr;
+};
+
+int predict(const Node* node, const Sample& x) {
+    while (node->feature != -1) {
+        node = (x[node->feature] <= node->threshold) ? node->left : node->right;
+    }
+    return node->prediction;
+}
+
+Node* buildTree(const Dataset& data, int depth, int maxDepth) {
+    if (depth == maxDepth || data.size() < 4) {
+        // Leaf: majority vote
+        int cnt[2] = {0, 0};
+        for (const auto& row : data) ++cnt[static_cast<int>(row.back())];
+        Node* leaf = new Node;
+        leaf->prediction = (cnt[1] > cnt[0]);
+        return leaf;
+    }
+    // Random split
+    std::uniform_int_distribution<int> featDist(0, static_cast<int>(data[0].size()) - 2);
+    std::uniform_real_distribution<double> thrDist(0.0, 1.0);
+    int f = featDist(rng);
+    double t = thrDist(rng);
+
+    Dataset left, right;
+    for (const auto& row : data) {
+        (row[f] <= t ? left : right).push_back(row);
+    }
+    if (left.empty() || right.empty()) return buildTree(data, depth + 1, maxDepth);
+
+    Node* node = new Node;
+    node->feature = f;
+    node->threshold = t;
+    node->left = buildTree(left, depth + 1, maxDepth);
+    node->right = buildTree(right, depth + 1, maxDepth);
+    return node;
+}
+
+// ---------- Random forest ----------
+class Forest {
+public:
+    Forest(int trees, int maxDepth) {
+        trees_.reserve(trees);
+        for (int i = 0; i < trees; ++i) trees_.emplace_back(nullptr);
+        maxDepth_ = maxDepth;
+    }
+    void train(const Dataset& data) {
+        for (auto& root : trees_) root = buildTree(data, 0, maxDepth_);
+    }
+    int classify(const Sample& x) const {
+        int votes[2] = {0, 0};
+        for (const auto& root : trees_) ++votes[predict(root, x)];
+        return votes[1] > votes[0];
+    }
+    ~Forest() { for (auto* root : trees_) destroy(root); }
+private:
+    std::vector<Node*> trees_;
+    int maxDepth_;
+    static void destroy(Node* n) {
+        if (!n) return;
+        destroy(n->left);
+        destroy(n->right);
+        delete n;
+    }
+};
+
+// ---------- Dataset utility ----------
+Dataset makeDataset(std::size_t n) {
+    Dataset data;
+    data.reserve(n);
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    for (std::size_t i = 0; i < n; ++i) {
+        Sample row(5);  // 4 features + label
+        for (int j = 0; j < 4; ++j) row[j] = dist(rng);
+        row[4] = (row[0] + row[1] + row[2] + row[3] > 2.0) ? 1.0 : 0.0;  // simple rule
+        data.push_back(std::move(row));
+    }
+    return data;
+}
+
+}  // namespace
+
+int main() {
+    constexpr std::size_t kTrain = 10000;
+    constexpr std::size_t kTest = 1000;
+    constexpr int kTrees = 100;
+    constexpr int kDepth = 5;
+
+    Dataset train = makeDataset(kTrain);
+    Dataset test = makeDataset(kTest);
+
+    Forest forest(kTrees, kDepth);
+    forest.train(train);
+
+    int correct = 0;
+    for (const auto& row : test) {
+        int pred = forest.classify(Sample(row.begin(), row.end() - 1));
+        if (pred == static_cast<int>(row.back())) ++correct;
+    }
+
+    std::cout << "Accuracy: " << (100.0 * correct / test.size()) << "%\n";
+    return 0;
+}
