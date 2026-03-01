@@ -1,0 +1,17 @@
+#include <algorithm>
+#include <stdexcept>
+#include <vector>
+
+std::vector<double> normalize_minmax(const std::vector<double>& data)
+{
+    if (data.empty()) return {};
+
+    const auto [min_it, max_it] = std::minmax_element(data.begin(), data.end());
+    const double span = *max_it - *min_it;
+    if (span == 0.0) return std::vector<double>(data.size(), 0.0); // avoid division by zero
+
+    std::vector<double> out;
+    out.reserve(data.size());
+    for (double v : data) out.push_back((v - *min_it) / span);
+    return out;
+}
