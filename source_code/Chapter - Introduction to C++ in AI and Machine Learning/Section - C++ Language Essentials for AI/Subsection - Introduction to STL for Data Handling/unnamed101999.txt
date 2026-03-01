@@ -1,0 +1,17 @@
+#include <numeric>
+#include <vector>
+#include <algorithm>
+#include <iostream>
+
+int main() {
+    std::vector<double> data{1.0, 2.0, 3.0, 4.0, 5.0};
+
+    if (data.empty()) return 0;          // guard against division by zero
+
+    double mean = std::accumulate(data.begin(), data.end(), 0.0) / data.size();
+
+    std::transform(data.begin(), data.end(), data.begin(),
+                   [mean](double x) { return x - mean; }); // center data
+
+    return 0;
+}
