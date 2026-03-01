@@ -1,0 +1,12 @@
+#include <Eigen/Dense>          // Dense-matrix part of Eigen
+#include <iostream>             // std::cout for error reporting
+
+int main() {
+    constexpr int N = 100;      // Matrix size (compile-time constant)
+
+    Eigen::MatrixXd A = Eigen::MatrixXd::Random(N, N);
+    Eigen::MatrixXd B = Eigen::MatrixXd::Random(N, N);
+    Eigen::MatrixXd C = A * B;  // Eigen uses optimized GEMM under the hood
+
+    return 0;
+}
