@@ -1,0 +1,11 @@
+#include <torch/torch.h>
+
+torch::Tensor rnn_forward(const torch::Tensor& input,
+                          const torch::Tensor& hidden,
+                          const torch::Tensor& Wxh,
+                          const torch::Tensor& Whh,
+                          const torch::Tensor& bh)
+{
+    // Single time-step Elman RNN: h_next = tanh(x @ Wxh + h @ Whh + bh)
+    return torch::tanh(input.mm(Wxh) + hidden.mm(Whh) + bh);
+}
