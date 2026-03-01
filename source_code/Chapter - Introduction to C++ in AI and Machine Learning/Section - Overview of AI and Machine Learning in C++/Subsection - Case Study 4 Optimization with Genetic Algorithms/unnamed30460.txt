@@ -1,0 +1,14 @@
+#include <vector>
+#include <numeric>
+#include <stdexcept>
+
+float evaluate_fitness(const std::vector<float>& individual)
+{
+    if (individual.empty())
+        throw std::invalid_argument("Individual must not be empty");
+
+    return std::inner_product(
+        individual.begin(), individual.end(),
+        individual.begin(), 0.0f
+    );
+}
