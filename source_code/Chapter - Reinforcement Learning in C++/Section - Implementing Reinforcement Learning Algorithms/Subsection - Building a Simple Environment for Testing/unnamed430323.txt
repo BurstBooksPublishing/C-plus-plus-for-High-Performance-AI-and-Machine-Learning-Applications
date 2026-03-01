@@ -1,0 +1,23 @@
+#include <array>
+#include <cstddef>
+#include <stdexcept>
+
+namespace config {
+
+// Grid dimensions and agent start/goal positions
+inline constexpr std::size_t GRID_SIZE = 5;
+inline constexpr std::size_t START_X = 0;
+inline constexpr std::size_t START_Y = 0;
+inline constexpr std::size_t GOAL_X = 4;
+inline constexpr std::size_t GOAL_Y = 4;
+
+// Reward values
+inline constexpr double GOAL_REWARD = 1.0;
+inline constexpr double STEP_REWARD = -0.1;
+
+// Compile-time validation
+static_assert(GRID_SIZE > 0, "GRID_SIZE must be positive");
+static_assert(START_X < GRID_SIZE && START_Y < GRID_SIZE, "Start out of bounds");
+static_assert(GOAL_X < GRID_SIZE && GOAL_Y < GRID_SIZE, "Goal out of bounds");
+
+} // namespace config
