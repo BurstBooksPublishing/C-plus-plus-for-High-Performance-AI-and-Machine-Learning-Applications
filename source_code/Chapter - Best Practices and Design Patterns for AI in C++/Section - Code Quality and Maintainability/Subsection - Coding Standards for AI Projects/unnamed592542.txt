@@ -1,0 +1,1 @@
+int numberOfEpochs = 100; double learningRate = 0.01; class NeuralNetwork { // Class implementation };
