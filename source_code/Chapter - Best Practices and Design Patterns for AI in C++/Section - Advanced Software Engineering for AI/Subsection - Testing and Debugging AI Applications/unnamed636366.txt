@@ -1,0 +1,29 @@
+#include <iostream>
+#include <vector>
+#include <numeric>
+#include <random>
+#include <chrono>
+
+// A self-contained demo that spends ~90 % of its time in hot() and ~10 % in cold().
+// Compile & profile exactly as shown in the original snippet.
+
+static volatile long sink = 0;          // prevents dead-code elimination
+
+void cold(std::size_t n)
+{
+    for (std::size_t i = 0; i < n / 10; ++i) ++sink;
+}
+
+void hot(std::size_t n)
+{
+    for (std::size_t i = 0; i < n; ++i) ++sink;
+}
+
+int main()
+{
+    constexpr std::size_t iterations = 100'000'000;
+    hot(iterations);
+    cold(iterations);
+    std::cout << "Done; sink = " << sink << '\n';
+    return 0;
+}
