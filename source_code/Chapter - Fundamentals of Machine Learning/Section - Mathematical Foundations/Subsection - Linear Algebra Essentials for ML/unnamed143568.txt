@@ -1,0 +1,26 @@
+#include <Eigen/Dense>          // Eigen dense matrix module
+#include <iostream>             // std::cerr
+
+using Eigen::MatrixXd;
+using Eigen::JacobiSVD;
+using Eigen::ComputeThinU;
+using Eigen::ComputeThinV;
+
+int main() {
+    MatrixXd A(3, 2);
+    A << 1, 2,
+         3, 4,
+         5, 6;
+
+    JacobiSVD<MatrixXd> svd(A, ComputeThinU | ComputeThinV);
+    if (svd.info() != Eigen::Success) {          // Ensure decomposition succeeded
+        std::cerr << "SVD decomposition failed\n";
+        return 1;
+    }
+
+    MatrixXd U = svd.matrixU();
+    MatrixXd S = svd.singularValues();
+    MatrixXd V = svd.matrixV();
+
+    return 0;
+}
