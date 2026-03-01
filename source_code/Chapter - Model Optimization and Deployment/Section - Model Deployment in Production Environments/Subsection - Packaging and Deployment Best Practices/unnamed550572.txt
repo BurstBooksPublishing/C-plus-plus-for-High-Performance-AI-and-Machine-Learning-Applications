@@ -1,0 +1,22 @@
+c
+#include <curl/curl.h>
+#include <stdlib.h>
+
+CURL *curl = curl_easy_init();
+if (!curl) return EXIT_FAILURE;
+
+curl_easy_setopt(curl, CURLOPT_URL, "https://api.example.com/v1/resource");
+
+curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);   // enforce server cert check
+curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);   // verify hostname matches cert
+
+curl_easy_setopt(curl, CURLOPT_CAINFO, "/etc/ssl/certs/ca-certificates.crt"); // system CA bundle
+
+struct curl_slist *hdrs = curl_slist_append(NULL, "Authorization: Bearer <token>");
+curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
+
+CURLcode res = curl_easy_perform(curl);
+if (res != CURLE_OK) fprintf(stderr, "curl error: %s\n", curl_easy_strerror(res));
+
+curl_slist_free_all(hdrs);
+curl_easy_cleanup(curl);
