@@ -1,0 +1,35 @@
+#include <memory>
+
+class Optimizer {
+public:
+    virtual ~Optimizer() = default;
+    virtual void optimize() = 0;
+};
+
+class SGD final : public Optimizer {
+public:
+    void optimize() override {
+        // SGD update logic
+    }
+};
+
+class Adam final : public Optimizer {
+public:
+    void optimize() override {
+        // Adam update logic
+    }
+};
+
+class TrainingContext {
+public:
+    void setOptimizer(std::unique_ptr<Optimizer> opt) {
+        optimizer_ = std::move(opt);
+    }
+
+    void train() {
+        if (optimizer_) optimizer_->optimize();
+    }
+
+private:
+    std::unique_ptr<Optimizer> optimizer_;
+};
