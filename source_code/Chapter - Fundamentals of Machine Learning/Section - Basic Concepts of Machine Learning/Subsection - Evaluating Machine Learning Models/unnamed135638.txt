@@ -1,0 +1,17 @@
+#include <vector>
+#include <stdexcept>
+
+double calculate_accuracy(const std::vector<int>& true_labels,
+                          const std::vector<int>& predicted_labels)
+{
+    if (true_labels.size() != predicted_labels.size()) {
+        throw std::invalid_argument("Size mismatch");
+    }
+    if (true_labels.empty()) return 0.0;
+
+    std::size_t correct = 0;
+    for (std::size_t i = 0; i < true_labels.size(); ++i) {
+        if (true_labels[i] == predicted_labels[i]) ++correct;
+    }
+    return static_cast<double>(correct) / true_labels.size();
+}
