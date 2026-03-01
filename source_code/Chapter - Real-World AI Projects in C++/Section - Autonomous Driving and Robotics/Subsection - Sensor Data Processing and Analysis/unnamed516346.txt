@@ -1,0 +1,56 @@
+#include <tensorflow/core/platform/env.h>
+#include <tensorflow/core/public/session.h>
+#include <tensorflow/core/framework/tensor.h>
+#include <iostream>
+#include <memory>
+#include <vector>
+
+using tensorflow::Tensor;
+using tensorflow::Status;
+using tensorflow::Session;
+using tensorflow::SessionOptions;
+using tensorflow::GraphDef;
+using tensorflow::TensorShape;
+using tensorflow::DT_FLOAT;
+
+void runInference(const std::string& modelPath,
+                  const std::vector<float>& inputData,
+                  const std::string& inputName  = "input",
+                  const std::string& outputName = "output")
+{
+    // Build and own the session
+    std::unique_ptr<Session> session(NewSession(SessionOptions()));
+    if (!session) {
+        std::cerr << "Failed to create TensorFlow session\n";
+        return;
+    }
+
+    // Load the frozen graph
+    GraphDef graphDef;
+    Status status = ReadBinaryProto(Env::Default(), modelPath, &graphDef);
+    if (!status.ok()) {
+        std::cerr << "Cannot read model: " << status.ToString() << '\n';
+        return;
+    }
+
+    status = session->Create(graphDef);
+    if (!status.ok()) {
+        std::cerr << "Cannot create graph: " << status.ToString() << '\n';
+        return;
+    }
+
+    // Build input tensor (batch-size 1)
+    Tensor inputTensor(DT_FLOAT, TensorShape({1, static_cast<tensorflow::int64>(inputData.size())}));
+    std::copy(inputData.begin(), inputData.end(), inputTensor.flat<float>().data());
+
+    // Run inference
+    std::vector<Tensor> outputs;
+    status = session->Run({{inputName, inputTensor}}, {outputName}, {}, &outputs);
+    if (!status.ok()) {
+        std::cerr << "Inference failed: " << status.ToString() << '\n';
+        return;
+    }
+
+    // Dump first output tensor
+    std::cout << "Inference result: " << outputs[0].flat<float>() << std::endl;
+}
