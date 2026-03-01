@@ -1,0 +1,6 @@
+#include <Eigen/Sparse>
+
+Eigen::SparseMatrix<double> sparse_matrix(1000, 1000);
+sparse_matrix.reserve(Eigen::VectorXi::Constant(1000, 1)); // reserve 1 entry per column
+sparse_matrix.insert(0, 0) = 1.0;
+sparse_matrix.makeCompressed(); // convert to compressed format for efficient algebra
