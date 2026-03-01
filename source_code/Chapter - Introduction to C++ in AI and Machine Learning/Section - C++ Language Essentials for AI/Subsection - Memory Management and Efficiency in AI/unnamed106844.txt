@@ -1,0 +1,6 @@
+#include <immintrin.h>   // _mm_* intrinsics
+#include <cstddef>       // std::size_t
+#include <array>
+
+// 16-byte aligned, fixed-size 4×4 matrix suitable for SIMD
+alignas(16) std::array<std::array<double,4>,4> matrix{};
