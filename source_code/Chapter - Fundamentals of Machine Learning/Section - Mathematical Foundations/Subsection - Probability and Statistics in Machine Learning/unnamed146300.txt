@@ -1,0 +1,13 @@
+#include <stdexcept>
+
+// Returns P(A|B) using Bayes’ theorem.
+// Throws if any argument is outside [0,1] or p_B is zero.
+double conditional_probability(double p_A, double p_B_given_A, double p_B) {
+    if (p_A < 0.0 || p_A > 1.0 ||
+        p_B_given_A < 0.0 || p_B_given_A > 1.0 ||
+        p_B < 0.0 || p_B > 1.0) {
+        throw std::invalid_argument("Probabilities must be in [0,1]");
+    }
+    if (p_B == 0.0) throw std::invalid_argument("p_B must be non-zero");
+    return (p_A * p_B_given_A) / p_B;
+}
