@@ -1,0 +1,17 @@
+#include <vector>
+#include <onnxruntime_cxx_api.h>
+
+// Build a 1-D attention mask: 1.0 for every real token, 0.0 for padding (none here).
+std::vector<float> create_attention_mask(const std::vector<int64_t>& tokens) {
+    return std::vector<float>(tokens.size(), 1.0f);
+}
+
+// Wrap token IDs into a 2-D ONNX Runtime tensor: shape [1, seq_len].
+Ort::Value create_input_tensor(const std::vector<int64_t>& tokens,
+                               const std::vector<float>& /*mask*/) {
+    Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    std::array<int64_t, 2> shape{1, static_cast<int64_t>(tokens.size())};
+    return Ort::Value::CreateTensor<int64_t>(
+        memory_info, const_cast<int64_t*>(tokens.data()), tokens.size(),
+        shape.data(), shape.size());
+}
