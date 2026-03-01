@@ -1,0 +1,36 @@
+#include <gym/gym.hpp>
+#include <gym/spaces.hpp>
+#include <memory>
+#include <iostream>
+
+class RandomAgent {
+public:
+    explicit RandomAgent(const gym::Space& actionSpace) : actionSpace_(actionSpace) {}
+
+    gym::Action act() const { return actionSpace_.sample(); }
+
+private:
+    gym::Space actionSpace_;
+};
+
+int main() {
+    auto env = gym::make("CartPole-v1");
+    RandomAgent agent(env->action_space());
+
+    for (int episode = 0; episode < 10; ++episode) {
+        auto state = env->reset();
+        float totalReward = 0.0f;
+        bool done = false;
+
+        while (!done) {
+            env->render();
+            auto [nextState, reward, done_, _] = env->step(agent.act());
+            totalReward += reward;
+            done = done_;
+            state = nextState;
+        }
+        std::cout << "Episode " << episode << " Total Reward: " << totalReward << '\n';
+    }
+    env->close();
+    return 0;
+}
