@@ -1,0 +1,16 @@
+#include <arrow/api.h>
+#include <arrow/result.h>
+#include <memory>
+
+arrow::Result<std::shared_ptr<arrow::Int64Array>> buildInt64Array() {
+    arrow::MemoryPool* pool = arrow::default_memory_pool();
+    arrow::Int64Builder builder(pool);
+
+    ARROW_RETURN_NOT_OK(builder.Append(1));
+    ARROW_RETURN_NOT_OK(builder.Append(2));
+    ARROW_RETURN_NOT_OK(builder.Append(3));
+
+    std::shared_ptr<arrow::Int64Array> array;
+    ARROW_RETURN_NOT_OK(builder.Finish(&array));
+    return array;
+}
