@@ -1,0 +1,50 @@
+#include <chrono>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <mutex>
+#include <string>
+
+namespace ml {
+
+// Thread-safe, append-only logger for model predictions
+class PredictionLogger {
+public:
+    explicit PredictionLogger(const std::string& logFilePath)
+        : path_(logFilePath) {}
+
+    void log(const std::string& modelName,
+             const std::string& inputData,
+             const std::string& prediction) {
+        std::lock_guard<std::mutex> lock(mtx_);
+
+        std::ofstream logFile(path_, std::ios::app);
+        if (!logFile) {
+            std::cerr << "Failed to open log file: " << path_ << '\n';
+            return;
+        }
+
+        const auto now = std::chrono::system_clock::now();
+        const auto now_time_t = std::chrono::system_clock::to_time_t(now);
+
+        logFile << "Model: " << modelName << '\n'
+                << "Timestamp: "
+                << std::put_time(std::localtime(&now_time_t), "%Y-%m-%d %H:%M:%S") << '\n'
+                << "Input Data: " << inputData << '\n'
+                << "Prediction: " << prediction << "\n"
+                << "----------------------------------------\n";
+    }
+
+private:
+    std::string path_;
+    std::mutex mtx_;
+};
+
+} // namespace ml
+
+int main() {
+    ml::PredictionLogger logger("model_predictions.log");
+    logger.log("ImageClassifier", "image_123.jpg", "Cat");
+    return 0;
+}
