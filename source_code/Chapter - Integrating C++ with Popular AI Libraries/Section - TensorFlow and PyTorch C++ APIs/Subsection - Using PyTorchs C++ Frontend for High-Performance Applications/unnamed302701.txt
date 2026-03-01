@@ -1,0 +1,27 @@
+#include <torch/torch.h>
+#include <memory>
+#include <iostream>
+
+struct NetImpl : torch::nn::Module {
+    NetImpl() {
+        fc1 = register_module("fc1", torch::nn::Linear(784, 64));
+        fc2 = register_module("fc2", torch::nn::Linear(64, 10));
+    }
+
+    torch::Tensor forward(torch::Tensor x) {
+        x = torch::relu(fc1->forward(x));
+        return fc2->forward(x);
+    }
+
+    torch::nn::Linear fc1{nullptr}, fc2{nullptr};
+};
+TORCH_MODULE(Net);
+
+int main() {
+    torch::manual_seed(0);
+    Net net;
+    auto input = torch::randn({1, 784});
+    auto output = net->forward(input);
+    std::cout << output << std::endl;
+    return 0;
+}
