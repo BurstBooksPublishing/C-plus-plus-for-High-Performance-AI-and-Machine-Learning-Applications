@@ -1,0 +1,58 @@
+#include <vector>
+#include <cmath>
+#include <limits>
+#include <random>
+#include <stdexcept>
+
+using Point = std::vector<double>;
+
+std::vector<Point> k_means(const std::vector<Point>& data, int k, int max_iterations) {
+    if (data.empty() || k <= 0 || max_iterations <= 0)
+        throw std::invalid_argument("Invalid input parameters");
+
+    const size_t dims = data[0].size();
+    std::vector<Point> centroids(k, Point(dims));
+
+    // Randomly initialize centroids from data points
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, data.size() - 1);
+    for (auto& c : centroids) c = data[dis(gen)];
+
+    std::vector<int> labels(data.size());
+
+    for (int iter = 0; iter < max_iterations; ++iter) {
+        // Assign points to nearest centroid
+        for (size_t i = 0; i < data.size(); ++i) {
+            double min_dist = std::numeric_limits<double>::max();
+            for (int j = 0; j < k; ++j) {
+                double dist = 0.0;
+                for (size_t d = 0; d < dims; ++d) {
+                    double diff = data[i][d] - centroids[j][d];
+                    dist += diff * diff;
+                }
+                if (dist < min_dist) {
+                    min_dist = dist;
+                    labels[i] = j;
+                }
+            }
+        }
+
+        // Update centroids
+        std::vector<Point> new_centroids(k, Point(dims, 0.0));
+        std::vector<int> counts(k, 0);
+        for (size_t i = 0; i < data.size(); ++i) {
+            int c = labels[i];
+            for (size_t d = 0; d < dims; ++d)
+                new_centroids[c][d] += data[i][d];
+            counts[c]++;
+        }
+        for (int j = 0; j < k; ++j) {
+            if (counts[j] == 0) continue;
+            for (size_t d = 0; d < dims; ++d)
+                centroids[j][d] = new_centroids[j][d] / counts[j];
+        }
+    }
+
+    return centroids;
+}
