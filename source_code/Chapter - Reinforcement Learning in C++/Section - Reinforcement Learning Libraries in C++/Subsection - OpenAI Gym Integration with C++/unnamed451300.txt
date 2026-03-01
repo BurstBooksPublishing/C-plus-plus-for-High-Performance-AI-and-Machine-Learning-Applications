@@ -1,0 +1,22 @@
+#include <gym_cpp/gym_interface.h>
+#include <iostream>
+#include <random>
+
+int main() {
+    gym_cpp::Environment env("CartPole-v1");          // connect to Gym server
+    env.reset();                                      // start new episode
+
+    std::random_device rd;                            // non-deterministic seed
+    std::uniform_int_distribution<int> dist(0, 1);    // CartPole discrete action space
+
+    for (int step = 0; step < 1000; ++step) {
+        int action = dist(rd);                        // random 0 or 1
+        auto [state, reward, done, info] = env.step(action);
+
+        std::cout << "s=" << state.transpose()        // Eigen vector
+                  << " r=" << reward << " d=" << done << '\n';
+
+        if (done) env.reset();                        // auto-restart on terminal
+    }
+    return 0;
+}
