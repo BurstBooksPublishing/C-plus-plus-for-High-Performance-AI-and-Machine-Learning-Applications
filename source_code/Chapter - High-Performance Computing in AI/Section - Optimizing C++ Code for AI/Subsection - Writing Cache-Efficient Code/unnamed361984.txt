@@ -1,0 +1,12 @@
+#include <vector>
+#include <algorithm>
+#include <execution>
+
+// Assume process() is defined elsewhere
+extern int process(int) noexcept;
+
+std::vector<int> data(1000);
+
+// Transform in-place, leveraging parallel execution when available
+std::transform(std::execution::par_unseq, data.begin(), data.end(), data.begin(),
+               [](int v) noexcept { return process(v); });
