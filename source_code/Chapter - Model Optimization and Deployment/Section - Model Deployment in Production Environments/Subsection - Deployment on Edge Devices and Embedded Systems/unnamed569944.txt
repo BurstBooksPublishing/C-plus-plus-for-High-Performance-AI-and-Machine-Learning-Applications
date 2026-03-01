@@ -1,0 +1,12 @@
+#include <benchmark/benchmark.h>
+
+// Minimal inference workload placeholder
+static void BM_Inference(benchmark::State& state) {
+    for (auto _ : state) {
+        // Prevent dead-code elimination
+        benchmark::DoNotOptimize(0);
+    }
+}
+BENCHMARK(BM_Inference);
+
+BENCHMARK_MAIN();
