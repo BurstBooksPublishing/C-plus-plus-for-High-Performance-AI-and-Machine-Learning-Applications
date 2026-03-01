@@ -1,0 +1,23 @@
+bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+TF_VERSION="2.10.0"
+ARCHIVE="libtensorflow-cpu-linux-x86_64-${TF_VERSION}.tar.gz"
+URL="https://storage.googleapis.com/tensorflow/libtensorflow/${ARCHIVE}"
+INSTALL_PREFIX="/usr/local"
+
+# Download and verify
+wget -q --show-progress "${URL}" -O "${ARCHIVE}"
+tar -xzf "${ARCHIVE}"
+
+# Install libraries and headers
+sudo install -d "${INSTALL_PREFIX}/lib" "${INSTALL_PREFIX}/include"
+sudo cp -P lib/* "${INSTALL_PREFIX}/lib/"
+sudo cp -r include/tensorflow "${INSTALL_PREFIX}/include/"
+
+# Update dynamic linker cache
+sudo ldconfig
+
+# Cleanup
+rm -rf lib include "${ARCHIVE}"
