@@ -1,0 +1,11 @@
+toml
+# conanfile.txt – lock exact versions and add the official Eigen recipe
+[requires]
+eigen/3.4.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[layout]
+cmake_layout
