@@ -1,0 +1,7 @@
+#include <cmath>
+
+inline float sigmoid(float x) noexcept {
+    // Clamp input to avoid overflow in exp()
+    const float y = std::max(-80.0f, std::min(x, 80.0f));
+    return 1.0f / (1.0f + std::exp(-y));
+}
