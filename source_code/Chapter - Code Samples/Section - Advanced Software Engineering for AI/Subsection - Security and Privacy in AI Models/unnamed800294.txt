@@ -1,0 +1,40 @@
+#include <vector>
+#include <iostream>
+#include <cmath>
+#include <stdexcept>
+#include <limits>
+
+// Quantize a float to int8; clamps to [-128,127]
+int8_t quantize(float value, float scale, int zero_point) {
+    if (scale <= 0.f) throw std::invalid_argument("scale must be positive");
+    int32_t q = static_cast<int32_t>(std::round(value / scale)) + zero_point;
+    if (q < -128) q = -128;
+    if (q > 127)  q = 127;
+    return static_cast<int8_t>(q);
+}
+
+// Dequantize int8 back to float
+float dequantize(int8_t quantized_value, float scale, int zero_point) {
+    return (quantized_value - zero_point) * scale;
+}
+
+int main() {
+    const std::vector<float> tensor = {1.2f, 3.4f, 5.6f, 7.8f};
+    const float scale = 0.1f;
+    const int zero_point = 10;
+
+    std::vector<int8_t> quantized;
+    quantized.reserve(tensor.size());
+    for (float v : tensor) quantized.push_back(quantize(v, scale, zero_point));
+
+    std::vector<float> restored;
+    restored.reserve(quantized.size());
+    for (int8_t q : quantized) restored.push_back(dequantize(q, scale, zero_point));
+
+    for (float v : tensor) std::cout << v << ' ';
+    std::cout << '\n';
+    for (int8_t q : quantized) std::cout << static_cast<int>(q) << ' ';
+    std::cout << '\n';
+    for (float v : restored) std::cout << v << ' ';
+    std::cout << '\n';
+}
