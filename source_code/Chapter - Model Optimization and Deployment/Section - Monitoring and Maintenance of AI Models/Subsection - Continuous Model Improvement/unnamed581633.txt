@@ -1,0 +1,10 @@
+#include <Eigen/Dense>
+
+// Compute C = A * B.  Throws std::invalid_argument if inner dimensions mismatch.
+Eigen::MatrixXd matrix_multiplication(const Eigen::MatrixXd& A,
+                                      const Eigen::MatrixXd& B)
+{
+    if (A.cols() != B.rows())
+        throw std::invalid_argument("Incompatible matrix dimensions for multiplication");
+    return A * B;
+}
