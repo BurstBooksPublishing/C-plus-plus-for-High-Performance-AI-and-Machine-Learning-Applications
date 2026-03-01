@@ -1,0 +1,16 @@
+#include <vector>
+#include <mutex>
+#include <thread>
+
+int main() {
+    std::vector<int> shared_data(1'000'000);
+    std::mutex mtx;
+
+    std::thread t1([&] {
+        std::lock_guard<std::mutex> lock(mtx);
+        // Access shared_data safely
+    });
+
+    t1.join();          // Ensure thread completion before exit
+    return 0;
+}
