@@ -1,0 +1,78 @@
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <limits>
+#include <numeric>
+#include <random>
+#include <stdexcept>
+#include <vector>
+
+struct Point {
+    double x{}, y{};
+    int cluster{-1};
+    double minDist{std::numeric_limits<double>::max()};
+
+    Point() = default;
+    Point(double x, double y) : x(x), y(y) {}
+
+    double distance(const Point& p) const {
+        return std::hypot(x - p.x, y - p.y);
+    }
+};
+
+void kMeans(std::vector<Point>& points, int k, int maxIter = 300) {
+    if (k <= 0 || points.size() < static_cast<size_t>(k))
+        throw std::invalid_argument("Invalid k");
+
+    std::vector<Point> centroids(k);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, points.size() - 1);
+
+    // Random unique initial centroids
+    for (int i = 0; i < k; ++i) {
+        centroids[i] = points[dis(gen)];
+    }
+
+    for (int iter = 0; iter < maxIter; ++iter) {
+        // Assignment step
+        for (auto& p : points) {
+            p.minDist = std::numeric_limits<double>::max();
+            for (int c = 0; c < k; ++c) {
+                double d = p.distance(centroids[c]);
+                if (d < p.minDist) {
+                    p.minDist = d;
+                    p.cluster = c;
+                }
+            }
+        }
+
+        // Update step
+        std::vector<double> sumX(k, 0.0), sumY(k, 0.0);
+        std::vector<size_t> count(k, 0);
+
+        for (const auto& p : points) {
+            int c = p.cluster;
+            sumX[c] += p.x;
+            sumY[c] += p.y;
+            ++count[c];
+        }
+
+        bool converged = true;
+        for (int c = 0; c < k; ++c) {
+            if (count[c] == 0) continue;
+            Point newCentroid{sumX[c] / count[c], sumY[c] / count[c]};
+            if (newCentroid.distance(centroids[c]) > 1e-6) converged = false;
+            centroids[c] = newCentroid;
+        }
+        if (converged) break;
+    }
+}
+
+int main() {
+    std::vector<Point> points{{1.0, 2.0}, {1.5, 2.5}, {3.0, 4.0},
+                              {5.0, 7.0}, {3.5, 5.0}, {4.5, 5.0}, {3.5, 4.5}};
+    kMeans(points, 2);
+    for (const auto& p : points)
+        std::cout << '(' << p.x << ',' << p.y << ") -> " << p.cluster << '\n';
+}
