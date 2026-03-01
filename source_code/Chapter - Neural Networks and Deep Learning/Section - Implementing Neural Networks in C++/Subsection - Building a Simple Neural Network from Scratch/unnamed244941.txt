@@ -1,0 +1,48 @@
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+
+void NeuralNetwork::backpropagation(const std::vector<double>& input,
+                                    const std::vector<double>& target,
+                                    double learning_rate)
+{
+    if (input.empty() || target.empty())
+        throw std::invalid_argument("Empty input or target");
+
+    // Forward pass: compute hidden and output activations
+    std::vector<double> hidden_output = forward_hidden(input);
+    std::vector<double> output        = forward_output(hidden_output);
+
+    if (output.size() != target.size())
+        throw std::invalid_argument("Target size mismatch");
+
+    // Output layer error: (o - t) * derivative
+    std::vector<double> output_error(output.size());
+    for (size_t i = 0; i < output.size(); ++i)
+        output_error[i] = (output[i] - target[i]) * output[i] * (1.0 - output[i]);
+
+    // Hidden layer error: sum downstream deltas * derivative
+    std::vector<double> hidden_error(hidden_output.size(), 0.0);
+    for (size_t j = 0; j < output.size(); ++j)
+        for (size_t i = 0; i < hidden_output.size(); ++i)
+            hidden_error[i] += output_error[j] * weights_hidden_output[j][i];
+
+    for (size_t i = 0; i < hidden_output.size(); ++i)
+        hidden_error[i] *= hidden_output[i] * (1.0 - hidden_output[i]);
+
+    // Update output weights and biases
+    for (size_t j = 0; j < output.size(); ++j)
+    {
+        for (size_t i = 0; i < hidden_output.size(); ++i)
+            weights_hidden_output[j][i] -= learning_rate * output_error[j] * hidden_output[i];
+        bias_output[j] -= learning_rate * output_error[j];
+    }
+
+    // Update hidden weights and biases
+    for (size_t j = 0; j < hidden_output.size(); ++j)
+    {
+        for (size_t i = 0; i < input.size(); ++i)
+            weights_input_hidden[j][i] -= learning_rate * hidden_error[j] * input[i];
+        bias_hidden[j] -= learning_rate * hidden_error[j];
+    }
+}
