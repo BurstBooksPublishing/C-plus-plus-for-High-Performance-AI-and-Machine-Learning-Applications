@@ -1,0 +1,9 @@
+#include <cstddef>   // size_t
+#include <algorithm> // std::transform
+#include <numeric>   // std::multiplies
+
+// Element-wise multiplication: result[i] = a[i] * b[i]
+// Pointers must be non-null and point to arrays of at least 'size' elements.
+void elementwise_multiply(const float* a, const float* b, float* result, std::size_t size) {
+    std::transform(a, a + size, b, result, std::multiplies<>{});
+}
