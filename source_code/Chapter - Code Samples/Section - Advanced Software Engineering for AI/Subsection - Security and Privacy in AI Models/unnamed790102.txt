@@ -1,0 +1,66 @@
+#include <iostream>
+#include <memory>
+#include <vector>
+
+#include "tensorflow/cc/client/client_session.h"
+#include "tensorflow/cc/ops/standard_ops.h"
+#include "tensorflow/core/framework/tensor.h"
+#include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/platform/env.h"
+
+using namespace tensorflow;
+using namespace tensorflow::ops;
+
+// Build a minimal sentiment-analysis graph: embedding -> dense -> softmax
+Status BuildSentimentModel(GraphDef* graph_def) {
+    Scope root = Scope::NewRootScope();
+
+    auto input = Placeholder(root.WithOpName("input"), DT_FLOAT,
+                             Placeholder::Shape({None, 128}));
+
+    Variable weights(root.WithOpName("weights"), {128, 2}, DT_FLOAT);
+    Variable bias(root.WithOpName("bias"), {2}, DT_FLOAT);
+
+    auto logits = BiasAdd(root, MatMul(root, input, weights), bias);
+    auto output = Softmax(root, logits);
+
+    TF_RETURN_IF_ERROR(root.ToGraphDef(graph_def));
+    return Status::OK();
+}
+
+int main() {
+    GraphDef graph_def;
+    TF_CHECK_OK(BuildSentimentModel(&graph_def));
+
+    ClientSession session(SessionOptions());
+    TF_CHECK_OK(session.Create(graph_def));
+
+    // Initialize variables
+    std::vector<Tensor> dummy;
+    TF_CHECK_OK(session.Run({Assign(session.GetVariable("weights",
+                                                        DT_FLOAT,
+                                                        TensorShape({128, 2})),
+                                    RandomNormal(session.GetVariable("weights",
+                                                                     DT_FLOAT,
+                                                                     TensorShape({128, 2})),
+                                                 DT_FLOAT)),
+                             Assign(session.GetVariable("bias",
+                                                        DT_FLOAT,
+                                                        TensorShape({2})),
+                                    RandomNormal(session.GetVariable("bias",
+                                                                     DT_FLOAT,
+                                                                     TensorShape({2})),
+                                                 DT_FLOAT))},
+                            &dummy));
+
+    // Synthetic 128-D embedding
+    Tensor input_tensor(DT_FLOAT, TensorShape({1, 128}));
+    std::fill_n(input_tensor.flat<float>().data(), 128, 0.5f);
+
+    std::vector<Tensor> outputs;
+    TF_CHECK_OK(session.Run({{"input", input_tensor}}, {"Softmax"}, {}, &outputs));
+
+    auto scores = outputs[0].flat<float>();
+    std::cout << "Positive: " << scores(1) << "\nNegative: " << scores(0) << "\n";
+    return 0;
+}
