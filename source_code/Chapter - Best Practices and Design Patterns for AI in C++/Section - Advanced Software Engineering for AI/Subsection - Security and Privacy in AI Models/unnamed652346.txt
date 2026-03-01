@@ -1,0 +1,26 @@
+#include <vector>
+#include <string>
+#include <openssl/evp.h>
+
+std::vector<std::uint8_t> encryptModel(const std::vector<std::uint8_t>& model,
+                                       const std::string& key)
+{
+    if (key.size() != 32) return {};          // AES-256 needs 32-byte key
+
+    std::vector<std::uint8_t> iv(EVP_MAX_IV_LENGTH, 0);
+    std::vector<std::uint8_t> out(model.size() + EVP_MAX_BLOCK_LENGTH);
+
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    int len = 0, total = 0;
+
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr,
+                       reinterpret_cast<const unsigned char*>(key.data()), iv.data());
+    EVP_EncryptUpdate(ctx, out.data(), &len, model.data(), static_cast<int>(model.size()));
+    total += len;
+    EVP_EncryptFinal_ex(ctx, out.data() + total, &len);
+    total += len;
+
+    EVP_CIPHER_CTX_free(ctx);
+    out.resize(total);
+    return out;
+}
