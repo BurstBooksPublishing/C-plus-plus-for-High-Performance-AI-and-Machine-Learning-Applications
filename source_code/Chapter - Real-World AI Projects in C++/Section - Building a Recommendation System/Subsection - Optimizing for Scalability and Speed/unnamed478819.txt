@@ -1,0 +1,10 @@
+#include <Eigen/Dense>
+#include <iostream>
+
+int main() {
+    constexpr int N = 1000;               // dimension shared by both operands
+    Eigen::MatrixXd A = Eigen::MatrixXd::Random(N, N);
+    Eigen::MatrixXd B = Eigen::MatrixXd::Random(N, N);
+    Eigen::MatrixXd C = A * B;            // single-threaded GEMM; Eigen uses BLAS internally
+    std::cout << C(0, 0) << '\n';         // touch result to prevent dead-code elimination
+}
