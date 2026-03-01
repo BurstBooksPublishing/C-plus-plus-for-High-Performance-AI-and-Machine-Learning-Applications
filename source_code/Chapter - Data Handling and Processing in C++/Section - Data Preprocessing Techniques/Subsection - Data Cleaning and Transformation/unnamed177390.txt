@@ -1,0 +1,19 @@
+#include <vector>
+#include <numeric>
+#include <cmath>
+
+void scaleData(std::vector<double>& data) {
+    if (data.empty()) return;                       // guard against division by zero
+
+    const double n = static_cast<double>(data.size());
+
+    const double mean = std::accumulate(data.begin(), data.end(), 0.0) / n;
+
+    double sq_sum = 0.0;
+    for (double x : data) sq_sum += (x - mean) * (x - mean);
+    const double stdev = std::sqrt(sq_sum / n);
+
+    if (stdev == 0.0) return;                       // constant data: leave unchanged
+
+    for (double& x : data) x = (x - mean) / stdev;
+}
