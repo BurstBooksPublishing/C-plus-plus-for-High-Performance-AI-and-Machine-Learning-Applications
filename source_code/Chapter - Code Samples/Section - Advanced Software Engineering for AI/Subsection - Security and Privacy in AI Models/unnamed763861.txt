@@ -1,0 +1,73 @@
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <iostream>
+#include <random>
+#include <stdexcept>
+#include <vector>
+
+class QLearning {
+public:
+    QLearning(std::size_t states, std::size_t actions,
+              double alpha, double gamma, double epsilon)
+        : states_(states), actions_(actions),
+          alpha_(alpha), gamma_(gamma), epsilon_(epsilon),
+          Q_(states, std::vector<double>(actions, 0.0)) {
+        if (alpha <= 0 || alpha > 1) throw std::invalid_argument("alpha");
+        if (gamma < 0 || gamma > 1) throw std::invalid_argument("gamma");
+        if (epsilon < 0 || epsilon > 1) throw std::invalid_argument("epsilon");
+    }
+
+    std::size_t act(std::size_t state) {
+        std::uniform_real_distribution<double> dist(0.0, 1.0);
+        if (dist(rng_) < epsilon_) {
+            std::uniform_int_distribution<std::size_t> a_dist(0, actions_ - 1);
+            return a_dist(rng_);
+        }
+        auto& row = Q_.at(state);
+        return std::distance(row.begin(),
+                             std::max_element(row.begin(), row.end()));
+    }
+
+    void update(std::size_t s, std::size_t a, std::size_t s_next, double r) {
+        double max_q = *std::max_element(Q_.at(s_next).begin(),
+                                         Q_.at(s_next).end());
+        Q_.at(s).at(a) += alpha_ * (r + gamma_ * max_q - Q_.at(s).at(a));
+    }
+
+    double q(std::size_t s, std::size_t a) const {
+        return Q_.at(s).at(a);
+    }
+
+private:
+    std::size_t states_;
+    std::size_t actions_;
+    double alpha_;
+    double gamma_;
+    double epsilon_;
+    std::vector<std::vector<double>> Q_;
+    std::mt19937 rng_{static_cast<unsigned>(
+        std::chrono::steady_clock::now().time_since_epoch().count())};
+};
+
+int main() {
+    const std::size_t states = 5;
+    const std::size_t actions = 3;
+    QLearning agent(states, actions, 0.1, 0.9, 0.1);
+
+    for (int ep = 0; ep < 1000; ++ep) {
+        std::size_t s = 0;
+        while (s != states - 1) {
+            std::size_t a = agent.act(s);
+            std::size_t s_next = (s + a + 1) % states;
+            double r = (s_next == states - 1) ? 1.0 : 0.0;
+            agent.update(s, a, s_next, r);
+            s = s_next;
+        }
+    }
+
+    for (std::size_t s = 0; s < states; ++s)
+        for (std::size_t a = 0; a < actions; ++a)
+            std::cout << "Q(" << s << "," << a << ") = "
+                      << agent.q(s, a) << '\n';
+}
