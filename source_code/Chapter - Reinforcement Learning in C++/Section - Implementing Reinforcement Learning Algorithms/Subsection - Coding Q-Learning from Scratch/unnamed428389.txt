@@ -1,0 +1,11 @@
+#include <algorithm>
+#include <iostream>
+#include <vector>
+
+void printBestActions(const std::vector<std::vector<double>>& Q_table) {
+    for (std::size_t state = 0; state < Q_table.size(); ++state) {
+        const auto& row = Q_table[state];
+        auto it = std::max_element(row.begin(), row.end());
+        std::cout << "State " << state << ": Best Action = " << std::distance(row.begin(), it) << '\n';
+    }
+}
