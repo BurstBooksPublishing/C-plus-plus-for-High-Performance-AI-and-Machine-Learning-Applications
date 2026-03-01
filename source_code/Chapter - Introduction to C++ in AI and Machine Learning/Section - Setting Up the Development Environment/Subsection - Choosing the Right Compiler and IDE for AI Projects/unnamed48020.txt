@@ -1,0 +1,177 @@
+#include <algorithm>
+#include <cmath>
+#include <execution>
+#include <fstream>
+#include <iostream>
+#include <numeric>
+#include <random>
+#include <span>
+#include <string>
+#include <vector>
+
+namespace nn {
+
+// ---------- Type aliases ----------
+using Scalar = float;
+using Index  = std::size_t;
+
+// ---------- Utilities ----------
+static std::mt19937 &rng() {
+    thread_local std::mt19937 gen{std::random_device{}()};
+    return gen;
+}
+
+static Scalar randn() {
+    static std::normal_distribution<Scalar> d{0.0, 1.0};
+    return d(rng());
+}
+
+// ---------- Math ----------
+inline Scalar sigmoid(Scalar x) { return 1.0 / (1.0 + std::exp(-x)); }
+inline Scalar d_sigmoid(Scalar y) { return y * (1.0 - y); } // y = sigmoid(x)
+
+inline Scalar relu(Scalar x) { return std::max(Scalar(0), x); }
+inline Scalar d_relu(Scalar x) { return x > 0 ? 1 : 0; }
+
+// ---------- Layer ----------
+struct Layer {
+    Index in, out;
+    std::vector<Scalar> w, b, z, a, dw, db, dz;
+
+    explicit Layer(Index in_nodes, Index out_nodes)
+        : in(in_nodes), out(out_nodes),
+          w(in * out), b(out), z(out), a(out), dw(in * out), db(out), dz(out) {
+        // He initialization for ReLU
+        Scalar stdv = std::sqrt(2.0 / in);
+        std::generate(w.begin(), w.end(), [&] { return randn() * stdv; });
+    }
+
+    void forward(std::span<const Scalar> x) {
+        std::fill(z.begin(), z.end(), Scalar(0));
+        // z = w * x + b
+        for (Index j = 0; j < out; ++j) {
+            Scalar sum = b[j];
+            for (Index i = 0; i < in; ++i) sum += w[j * in + i] * x[i];
+            z[j] = sum;
+            a[j] = relu(sum);
+        }
+    }
+
+    void backward(std::span<const Scalar> x, std::span<const Scalar> prev_da) {
+        // dz = d_relu(z) * (w^{l+1}^T * da^{l+1})
+        for (Index j = 0; j < out; ++j) dz[j] = d_relu(z[j]) * prev_da[j];
+
+        // db = dz
+        std::copy(dz.begin(), dz.end(), db.begin());
+
+        // dw = dz * x^T
+        std::fill(dw.begin(), dw.end(), Scalar(0));
+        for (Index j = 0; j < out; ++j)
+            for (Index i = 0; i < in; ++i)
+                dw[j * in + i] += dz[j] * x[i];
+    }
+};
+
+// ---------- Network ----------
+class Network {
+public:
+    explicit Network(std::vector<Index> arch) {
+        for (Index i = 1; i < arch.size(); ++i)
+            layers.emplace_back(arch[i - 1], arch[i]);
+    }
+
+    std::vector<Scalar> predict(std::span<const Scalar> x) {
+        std::vector<Scalar> activations(x.begin(), x.end());
+        for (auto &L : layers) {
+            L.forward(activations);
+            activations.assign(L.a.begin(), L.a.end());
+        }
+        return activations;
+    }
+
+    void train(const std::vector<std::vector<Scalar>> &X,
+               const std::vector<std::vector<Scalar>> &Y,
+               Scalar lr = 0.01,
+               Index epochs = 100) {
+        const Index N = X.size();
+        std::vector<Index> idx(N);
+        std::iota(idx.begin(), idx.end(), 0);
+
+        for (Index epoch = 0; epoch < epochs; ++epoch) {
+            std::shuffle(idx.begin(), idx.end(), rng());
+            Scalar loss = 0;
+
+            for (Index k : idx) {
+                const auto &x = X[k];
+                const auto &y = Y[k];
+
+                // forward
+                std::vector<Scalar> activations(x.begin(), x.end());
+                for (auto &L : layers) {
+                    L.forward(activations);
+                    activations.assign(L.a.begin(), L.a.end());
+                }
+
+                // loss: MSE
+                Scalar sample_loss = 0;
+                for (Index i = 0; i < y.size(); ++i)
+                    sample_loss += std::pow(activations[i] - y[i], 2);
+                loss += sample_loss / y.size();
+
+                // backward output layer
+                std::vector<Scalar> da = activations;
+                for (Index i = 0; i < da.size(); ++i) da[i] -= y[i];
+
+                // propagate backwards
+                for (Index l = layers.size(); l-- > 0;) {
+                    auto &L = layers[l];
+                    std::span<const Scalar> prev_act =
+                        (l == 0) ? std::span<const Scalar>(x) : std::span<const Scalar>(layers[l - 1].a);
+                    L.backward(prev_act, da);
+
+                    // prepare da for next layer (l-1)
+                    if (l > 0) {
+                        da.assign(layers[l - 1].out, Scalar(0));
+                        for (Index j = 0; j < L.out; ++j)
+                            for (Index i = 0; i < L.in; ++i)
+                                da[i] += L.w[j * L.in + i] * L.dz[j];
+                    }
+                }
+
+                // SGD update
+                for (auto &L : layers) {
+                    std::transform(L.w.begin(), L.w.end(), L.dw.begin(), L.w.begin(),
+                                   [=](Scalar wi, Scalar dwi) { return wi - lr * dwi / N; });
+                    std::transform(L.b.begin(), L.b.end(), L.db.begin(), L.b.begin(),
+                                   [=](Scalar bi, Scalar dbi) { return bi - lr * dbi / N; });
+                }
+            }
+            if (epoch % 10 == 0)
+                std::cout << "epoch " << epoch << " loss " << loss / N << '\n';
+        }
+    }
+
+private:
+    std::vector<Layer> layers;
+};
+
+} // namespace nn
+
+// ---------- Example ----------
+int main() {
+    constexpr Index INPUT = 2, HIDDEN = 4, OUTPUT = 1;
+    nn::Network net{{INPUT, HIDDEN, OUTPUT}};
+
+    std::vector<std::vector<nn::Scalar>> X{
+        {0, 0}, {0, 1}, {1, 0}, {1, 1}};
+    std::vector<std::vector<nn::Scalar>> Y{
+        {0}, {1}, {1}, {0}};
+
+    net.train(X, Y, 0.05, 500);
+
+    for (auto &x : X) {
+        auto yhat = net.predict(x);
+        std::cout << x[0] << " ^ " << x[1] << " ~= " << yhat[0] << '\n';
+    }
+    return 0;
+}
