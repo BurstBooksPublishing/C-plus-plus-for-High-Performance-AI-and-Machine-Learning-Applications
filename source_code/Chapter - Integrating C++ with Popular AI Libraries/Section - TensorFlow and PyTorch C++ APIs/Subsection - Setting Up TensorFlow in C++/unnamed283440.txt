@@ -1,0 +1,90 @@
+#include <tensorflow/c/c_api.h>
+#include <iostream>
+#include <memory>
+#include <vector>
+
+// RAII wrapper for TF_Buffer
+struct BufferDeleter {
+    void operator()(TF_Buffer* b) const { if (b) TF_DeleteBuffer(b); }
+};
+using BufferPtr = std::unique_ptr<TF_Buffer, BufferDeleter>;
+
+// RAII wrapper for TF_Status
+struct StatusDeleter {
+    void operator()(TF_Status* s) const { if (s) TF_DeleteStatus(s); }
+};
+using StatusPtr = std::unique_ptr<TF_Status, StatusDeleter>;
+
+// RAII wrapper for TF_Graph
+struct GraphDeleter {
+    void operator()(TF_Graph* g) const { if (g) TF_DeleteGraph(g); }
+};
+using GraphPtr = std::unique_ptr<TF_Graph, GraphDeleter>;
+
+// RAII wrapper for TF_Session
+struct SessionDeleter {
+    void operator()(TF_Session* s) const { if (s) TF_CloseSession(s, TF_NewStatus()); TF_DeleteSession(s, TF_NewStatus()); }
+};
+using SessionPtr = std::unique_ptr<TF_Session, SessionDeleter>;
+
+// Load frozen graph from disk
+BufferPtr ReadFrozenGraph(const std::string& pb_file) {
+    std::ifstream file(pb_file, std::ios::binary | std::ios::ate);
+    if (!file) throw std::runtime_error("Cannot open " + pb_file);
+
+    auto size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<char> data(size);
+    if (!file.read(data.data(), size)) throw std::runtime_error("Read failed");
+
+    TF_Buffer* buf = TF_NewBuffer();
+    buf->data = malloc(size);
+    buf->length = size;
+    buf->data_deallocator = [](void* data, size_t) { free(data); };
+    std::memcpy(buf->data, data.data(), size);
+    return BufferPtr(buf);
+}
+
+int main() {
+    StatusPtr status(TF_NewStatus());
+
+    // Import graph
+    GraphPtr graph(TF_NewGraph());
+    BufferPtr graph_def = ReadFrozenGraph("frozen.pb");
+    TF_ImportGraphDefOptions* opts = TF_NewImportGraphDefOptions();
+    TF_GraphImportGraphDef(graph.get(), graph_def.get(), opts, status.get());
+    TF_DeleteImportGraphDefOptions(opts);
+    if (TF_GetCode(status.get()) != TF_OK) {
+        std::cerr << TF_Message(status.get()) << std::endl;
+        return 1;
+    }
+
+    // Create session
+    SessionPtr session(TF_NewSession(graph.get(), TF_SessionOptionsNew(), status.get()));
+    if (TF_GetCode(status.get()) != TF_OK) {
+        std::cerr << TF_Message(status.get()) << std::endl;
+        return 1;
+    }
+
+    // Example: run a dummy feed-forward pass
+    std::vector<TF_Output> inputs;
+    std::vector<TF_Tensor*> input_values;
+    std::vector<TF_Output> outputs = {TF_Output{TF_GraphOperationByName(graph.get(), "output"), 0}};
+    std::vector<TF_Tensor*> output_values(outputs.size(), nullptr);
+
+    TF_SessionRun(session.get(),
+                  nullptr,                       // run_options
+                  inputs.data(), input_values.data(), inputs.size(),
+                  outputs.data(), output_values.data(), outputs.size(),
+                  nullptr, 0,                    // targets
+                  nullptr,                       // metadata
+                  status.get());
+    if (TF_GetCode(status.get()) != TF_OK) {
+        std::cerr << TF_Message(status.get()) << std::endl;
+        return 1;
+    }
+
+    for (auto* t : output_values) TF_DeleteTensor(t);
+    return 0;
+}
