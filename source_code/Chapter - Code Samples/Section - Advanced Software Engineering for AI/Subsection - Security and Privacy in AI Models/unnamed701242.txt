@@ -1,0 +1,53 @@
+#include <vector>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+
+static double sigmoid(double x) noexcept {
+    // Clamp to avoid overflow in exp()
+    if (x < -700.0) return 0.0;
+    if (x >  700.0) return 1.0;
+    return 1.0 / (1.0 + std::exp(-x));
+}
+
+std::vector<double> forwardPropagation(const std::vector<std::vector<double>>& weights,
+                                       const std::vector<double>& biases,
+                                       const std::vector<double>& input) {
+    if (weights.empty() || biases.empty()) throw std::invalid_argument("Empty weights/biases");
+    if (input.empty()) throw std::invalid_argument("Empty input");
+
+    std::vector<double> activations = input;
+
+    for (size_t layer = 0; layer < weights.size(); ++layer) {
+        const size_t outSize = weights[layer].size() / activations.size();
+        if (weights[layer].size() % activations.size() != 0)
+            throw std::invalid_argument("Weight matrix dimensions mismatch");
+
+        std::vector<double> next(outSize, 0.0);
+
+        for (size_t j = 0; j < outSize; ++j) {
+            double sum = 0.0;
+            for (size_t i = 0; i < activations.size(); ++i)
+                sum += activations[i] * weights[layer][i * outSize + j];
+
+            next[j] = sigmoid(sum + biases[layer * outSize + j]);
+        }
+        activations = std::move(next);
+    }
+    return activations;
+}
+
+int main() {
+    std::vector<std::vector<double>> weights = {
+        {0.1, 0.2, 0.3, 0.4},  // 2x2
+        {0.5, 0.6}             // 2x1
+    };
+    std::vector<double> biases = {0.1, 0.2, 0.3};  // 2 + 1
+
+    std::vector<double> input = {1.0, 2.0};
+
+    std::vector<double> output = forwardPropagation(weights, biases, input);
+
+    for (double v : output) std::cout << v << ' ';
+    std::cout << '\n';
+}
