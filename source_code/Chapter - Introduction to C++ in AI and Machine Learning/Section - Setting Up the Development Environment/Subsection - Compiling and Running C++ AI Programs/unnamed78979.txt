@@ -1,0 +1,14 @@
+#include <Eigen/Dense>
+#include <iostream>
+
+int main() {
+    const int n = 1000;
+    Eigen::MatrixXd A = Eigen::MatrixXd::Random(n, n);
+    Eigen::MatrixXd B = Eigen::MatrixXd::Random(n, n);
+
+    // Eigen uses optimized BLAS; manual triple-loop is slower
+    Eigen::MatrixXd C = A * B;
+
+    // Basic sanity check to prevent dead-code elimination
+    std::cout << C(0, 0) << std::endl;
+}
