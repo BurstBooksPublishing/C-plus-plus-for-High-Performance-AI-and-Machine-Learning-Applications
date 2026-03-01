@@ -1,0 +1,45 @@
+#include <arrow/api.h>
+#include <arrow/compute/api.h>
+#include <memory>
+
+std::shared_ptr<arrow::Table> table = ...; // Assume table is already created
+
+// Ensure we have at least one column and one chunk
+if (!table || table->num_columns() == 0 || table->column(0)->num_chunks() == 0) {
+    // Handle error appropriately
+    return;
+}
+
+std::shared_ptr<arrow::Array> array = table->column(0)->chunk(0);
+
+arrow::compute::ExecContext exec_context;
+
+// Compute mean and standard deviation
+arrow::Result<arrow::Datum> mean_result = arrow::compute::Mean(array, &exec_context);
+if (!mean_result.ok()) {
+    // Handle error
+    return;
+}
+arrow::Datum mean = *mean_result;
+
+arrow::Result<arrow::Datum> stddev_result = arrow::compute::Stddev(array, &exec_context);
+if (!stddev_result.ok()) {
+    // Handle error
+    return;
+}
+arrow::Datum stddev = *stddev_result;
+
+// Normalize: (array - mean) / stddev
+arrow::Result<arrow::Datum> subtract_result = arrow::compute::CallFunction("subtract", {array, mean}, &exec_context);
+if (!subtract_result.ok()) {
+    // Handle error
+    return;
+}
+arrow::Datum subtracted = *subtract_result;
+
+arrow::Result<arrow::Datum> divide_result = arrow::compute::CallFunction("divide", {subtracted, stddev}, &exec_context);
+if (!divide_result.ok()) {
+    // Handle error
+    return;
+}
+arrow::Datum normalized = *divide_result;
