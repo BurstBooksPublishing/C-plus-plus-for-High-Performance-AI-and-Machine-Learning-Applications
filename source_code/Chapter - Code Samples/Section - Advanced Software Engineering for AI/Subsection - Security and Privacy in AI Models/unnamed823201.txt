@@ -1,0 +1,54 @@
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+
+class NeuralNetwork {
+public:
+    virtual ~NeuralNetwork() = default;
+    virtual void train(const std::string& dataPath) = 0;
+    virtual std::string predict(const std::string& input) = 0;
+};
+
+class FeedforwardNN : public NeuralNetwork {
+public:
+    void train(const std::string& dataPath) override {
+        std::cout << "Training FeedforwardNN with data: " << dataPath << '\n';
+    }
+    std::string predict(const std::string& input) override {
+        return "FeedforwardNN prediction for " + input;
+    }
+};
+
+class ConvolutionalNN : public NeuralNetwork {
+public:
+    void train(const std::string& dataPath) override {
+        std::cout << "Training ConvolutionalNN with data: " << dataPath << '\n';
+    }
+    std::string predict(const std::string& input) override {
+        return "ConvolutionalNN prediction for " + input;
+    }
+};
+
+class NeuralNetworkFactory {
+public:
+    enum class Type { Feedforward, Convolutional };
+
+    static std::unique_ptr<NeuralNetwork> create(Type t) {
+        switch (t) {
+            case Type::Feedforward: return std::make_unique<FeedforwardNN>();
+            case Type::Convolutional: return std::make_unique<ConvolutionalNN>();
+        }
+        throw std::invalid_argument("Unknown network type");
+    }
+};
+
+int main() {
+    auto ffnn = NeuralNetworkFactory::create(NeuralNetworkFactory::Type::Feedforward);
+    ffnn->train("data/ffnn.csv");
+    std::cout << ffnn->predict("sample1") << '\n';
+
+    auto cnn = NeuralNetworkFactory::create(NeuralNetworkFactory::Type::Convolutional);
+    cnn->train("data/cnn/");
+    std::cout << cnn->predict("image1.png") << '\n';
+}
