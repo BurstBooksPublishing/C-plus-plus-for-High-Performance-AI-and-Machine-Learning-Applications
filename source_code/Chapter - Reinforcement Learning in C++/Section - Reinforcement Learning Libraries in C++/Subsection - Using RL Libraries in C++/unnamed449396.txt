@@ -1,0 +1,25 @@
+#include <limits>
+#include <vector>
+
+// Forward declarations
+struct State;
+using RewardFunction = double(const State&, int);
+using TransitionProbability = double(const State&, int, const State&);
+
+double bellmanEquation(const State& s,
+                       double gamma,
+                       const RewardFunction& R,
+                       const TransitionProbability& P)
+{
+    double max_value = -std::numeric_limits<double>::infinity();
+
+    for (int action : s.possible_actions()) {
+        double q = R(s, action);
+
+        for (const State& ns : s.possible_next_states(action))
+            q += gamma * P(s, action, ns) * ns.value();
+
+        if (q > max_value) max_value = q;
+    }
+    return max_value;
+}
