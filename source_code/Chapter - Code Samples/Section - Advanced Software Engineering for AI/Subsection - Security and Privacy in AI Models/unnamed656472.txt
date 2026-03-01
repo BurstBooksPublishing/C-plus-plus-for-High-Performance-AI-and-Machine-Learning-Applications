@@ -1,0 +1,58 @@
+#include <cmath>
+#include <iostream>
+#include <numeric>
+#include <random>
+#include <stdexcept>
+#include <vector>
+
+class LogisticRegression {
+public:
+    explicit LogisticRegression(std::size_t n_features, double init_scale = 0.01)
+        : weights_(n_features, 0.0) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<double> dist(0.0, init_scale);
+        for (auto& w : weights_) w = dist(gen);
+    }
+
+    double predict(const std::vector<double>& features) const {
+        if (features.size() != weights_.size())
+            throw std::invalid_argument("Feature size mismatch");
+        double z = std::inner_product(features.begin(), features.end(), weights_.begin(), 0.0);
+        return 1.0 / (1.0 + std::exp(-z));
+    }
+
+    void fit(const std::vector<std::vector<double>>& X,
+             const std::vector<int>& y,
+             double lr = 0.01,
+             std::size_t epochs = 1000) {
+        if (X.empty() || y.empty() || X.size() != y.size())
+            throw std::invalid_argument("Invalid data");
+        const std::size_t n = X.size();
+        for (std::size_t epoch = 0; epoch < epochs; ++epoch) {
+            std::vector<double> grad(weights_.size(), 0.0);
+            for (std::size_t i = 0; i < n; ++i) {
+                double p = predict(X[i]);
+                double err = y[i] - p;
+                for (std::size_t j = 0; j < weights_.size(); ++j)
+                    grad[j] += err * X[i][j];
+            }
+            for (std::size_t j = 0; j < weights_.size(); ++j)
+                weights_[j] += lr * grad[j] / n;
+        }
+    }
+
+private:
+    std::vector<double> weights_;
+};
+
+int main() {
+    std::vector<std::vector<double>> X = {{1, 2}, {2, 3}, {3, 4}, {4, 5}};
+    std::vector<int> y = {0, 0, 1, 1};
+
+    LogisticRegression model(2);
+    model.fit(X, y, 0.1, 5000);
+
+    std::vector<double> test = {5, 6};
+    std::cout << model.predict(test) << '\n';
+}
