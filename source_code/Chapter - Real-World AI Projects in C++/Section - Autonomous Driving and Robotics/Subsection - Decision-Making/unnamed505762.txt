@@ -1,0 +1,12 @@
+#include <torch/torch.h>
+#include <torch/script.h>
+#include <memory>
+
+torch::Tensor predict_steering_angle(const torch::Tensor& input) {
+    static std::shared_ptr<torch::jit::script::Module> model = []() {
+        auto m = torch::jit::load("steering_model.pt");
+        m->eval();               // disable dropout/BN updates
+        return m;
+    }();
+    return model->forward({input}).toTensor();
+}
