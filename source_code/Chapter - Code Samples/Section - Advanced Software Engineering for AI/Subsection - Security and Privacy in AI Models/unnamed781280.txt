@@ -1,0 +1,64 @@
+#include <map>
+#include <cmath>
+#include <iostream>
+#include <stdexcept>
+#include <limits>
+
+using RatingMatrix = std::map<int, std::map<int, double>>;
+
+// Cosine similarity between two users; ignores items rated 0 (treated as missing)
+double cosineSimilarity(const std::map<int, double>& a,
+                        const std::map<int, double>& b)
+{
+    double dot = 0.0, normA = 0.0, normB = 0.0;
+
+    for (const auto& [item, ra] : a) {
+        if (ra == 0.0) continue;
+        normA += ra * ra;
+        if (auto it = b.find(item); it != b.end() && it->second != 0.0)
+            dot += ra * it->second;
+    }
+    for (const auto& [item, rb] : b)
+        if (rb != 0.0) normB += rb * rb;
+
+    if (normA == 0.0 || normB == 0.0) return 0.0;
+    return dot / (std::sqrt(normA) * std::sqrt(normB));
+}
+
+// Predict rating for (user,item) using weighted average of neighbors' ratings
+double predictRating(int userId, int itemId, const RatingMatrix& data)
+{
+    if (data.find(userId) == data.end())
+        throw std::invalid_argument("User not found");
+
+    double weightedSum = 0.0, simSum = 0.0;
+
+    for (const auto& [otherId, ratings] : data) {
+        if (otherId == userId) continue;
+        auto it = ratings.find(itemId);
+        if (it == ratings.end() || it->second == 0.0) continue;
+
+        double sim = cosineSimilarity(data.at(userId), ratings);
+        if (sim <= 0.0) continue;          // ignore negative or zero similarity
+        weightedSum += sim * it->second;
+        simSum += sim;
+    }
+    return simSum > 0.0 ? weightedSum / simSum
+                        : std::numeric_limits<double>::quiet_NaN();
+}
+
+int main()
+{
+    RatingMatrix userItemRatings{
+        {1, {{1, 5.0}, {2, 3.0}, {3, 4.0}}},
+        {2, {{1, 4.0}, {2, 0.0}, {3, 5.0}}},
+        {3, {{1, 0.0}, {2, 4.0}, {3, 3.0}}}
+    };
+
+    int userId = 1, itemId = 2;
+    double pred = predictRating(userId, itemId, userItemRatings);
+
+    std::cout << "Predicted rating for user " << userId
+              << " on item " << itemId << " is: " << pred << '\n';
+    return 0;
+}
