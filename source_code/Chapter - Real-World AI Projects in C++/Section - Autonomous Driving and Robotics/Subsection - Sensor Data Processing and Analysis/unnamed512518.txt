@@ -1,0 +1,32 @@
+#include <algorithm>
+#include <vector>
+
+struct Point3D {
+    float x{}, y{}, z{};
+};
+
+// Remove points whose z-coordinate exceeds the given threshold.
+void filterNoise(std::vector<Point3D>& points, float threshold) {
+    points.erase(
+        std::remove_if(points.begin(), points.end(),
+                       [threshold](const Point3D& p) { return p.z > threshold; }),
+        points.end());
+}
+
+// Segment ground-plane points (placeholder).
+void segmentGroundPlane(std::vector<Point3D>& points) {
+    // TODO: implement ground-plane segmentation
+}
+
+// Extract features from the remaining points (placeholder).
+void extractFeatures(const std::vector<Point3D>& points) {
+    // TODO: implement feature extraction
+}
+
+int main() {
+    std::vector<Point3D> pointCloud; // load LiDAR data here
+    filterNoise(pointCloud, 10.0f);
+    segmentGroundPlane(pointCloud);
+    extractFeatures(pointCloud);
+    return 0;
+}
