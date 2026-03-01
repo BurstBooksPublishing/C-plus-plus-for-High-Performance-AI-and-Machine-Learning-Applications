@@ -1,0 +1,11 @@
+#include <vector>
+#include <cmath>
+
+inline float sigmoid(float x) noexcept {
+    // numerically-stable sigmoid: avoids overflow for large negative x
+    return x >= 0.f ? 1.f / (1.f + std::exp(-x))
+                    : std::exp(x) / (1.f + std::exp(x));
+}
+
+std::vector<float> values{1.0f, 2.0f, 3.0f, 4.0f};
+for (float& v : values) v = sigmoid(v);
