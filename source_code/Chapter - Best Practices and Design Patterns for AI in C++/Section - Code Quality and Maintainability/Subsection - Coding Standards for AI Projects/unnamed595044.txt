@@ -1,0 +1,76 @@
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+#include <limits>
+
+class DataPreprocessor {
+public:
+    // Returns min-max scaled copy; empty input is UB.
+    std::vector<std::vector<double>> normalize(const std::vector<std::vector<double>>& data) {
+        if (data.empty() || data.front().empty()) return {};
+        const std::size_t cols = data.front().size();
+        std::vector<double> min(cols,  std::numeric_limits<double>::max());
+        std::vector<double> max(cols, -std::numeric_limits<double>::max());
+
+        for (const auto& row : data)
+            for (std::size_t j = 0; j < cols; ++j) {
+                min[j] = std::fmin(min[j], row[j]);
+                max[j] = std::fmax(max[j], row[j]);
+            }
+
+        std::vector<std::vector<double>> out;
+        out.reserve(data.size());
+        for (const auto& row : data) {
+            std::vector<double> tmp; tmp.reserve(cols);
+            for (std::size_t j = 0; j < cols; ++j) {
+                double den = max[j] - min[j];
+                tmp.push_back(den == 0.0 ? 0.0 : (row[j] - min[j]) / den);
+            }
+            out.push_back(std::move(tmp));
+        }
+        return out;
+    }
+};
+
+class NeuralNetwork {
+public:
+    // Extremely small dummy network for demonstration only.
+    void train(const std::vector<std::vector<double>>& data,
+               const std::vector<int>& labels) {
+        if (data.size() != labels.size()) throw std::invalid_argument("mismatch sizes");
+        weights_.assign(data.front().size(), 0.0);
+        // single-pass perceptron update
+        const double eta = 0.01;
+        for (std::size_t i = 0; i < data.size(); ++i) {
+            double z = 0.0;
+            for (std::size_t j = 0; j < weights_.size(); ++j) z += data[i][j] * weights_[j];
+            int y = (z >= 0.0) ? 1 : 0;
+            int err = labels[i] - y;
+            for (double& w : weights_) w += eta * err * data[i][&w - &weights_[0]];
+        }
+    }
+
+    // Returns raw scores; client can apply softmax/argmax if needed.
+    std::vector<double> predict(const std::vector<double>& input) const {
+        if (input.size() != weights_.size()) throw std::invalid_argument("dimension mismatch");
+        double z = 0.0;
+        for (std::size_t i = 0; i < input.size(); ++i) z += input[i] * weights_[i];
+        return { z };               // single logit
+    }
+
+private:
+    std::vector<double> weights_;
+};
+
+class Evaluator {
+public:
+    // Accuracy for binary 0/1 predictions.
+    double accuracy(const std::vector<int>& predictions,
+                    const std::vector<int>& labels) const {
+        if (predictions.size() != labels.size()) throw std::invalid_argument("size mismatch");
+        std::size_t ok = 0;
+        for (std::size_t i = 0; i < predictions.size(); ++i)
+            if (predictions[i] == labels[i]) ++ok;
+        return labels.empty() ? 0.0 : static_cast<double>(ok) / labels.size();
+    }
+};
