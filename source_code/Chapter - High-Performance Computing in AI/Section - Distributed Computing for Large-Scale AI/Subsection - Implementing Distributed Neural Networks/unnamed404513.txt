@@ -1,0 +1,12 @@
+#include <vector>
+#include <cstdint>
+
+std::vector<int16_t> compress_gradients(const std::vector<float>& gradients) {
+    std::vector<int16_t> compressed;
+    compressed.reserve(gradients.size());               // avoid reallocations
+    for (float g : gradients) {
+        float clamped = std::max(-32.768f, std::min(32.767f, g * 1000.f));
+        compressed.push_back(static_cast<int16_t>(std::lround(clamped)));
+    }
+    return compressed;
+}
