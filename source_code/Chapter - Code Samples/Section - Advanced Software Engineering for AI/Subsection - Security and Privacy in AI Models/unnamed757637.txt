@@ -1,0 +1,40 @@
+#include <vector>
+#include <iostream>
+#include <stdexcept>
+#include <mpi.h>
+
+void synchronize_gradients(std::vector<float>& gradients, int rank, int size) {
+    if (gradients.empty()) return;
+
+    int gradient_size = static_cast<int>(gradients.size());
+    MPI_Bcast(&gradient_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    if (static_cast<int>(gradients.size()) != gradient_size) {
+        throw std::runtime_error("Gradient size mismatch across ranks.");
+    }
+
+    MPI_Allreduce(MPI_IN_PLACE, gradients.data(), gradient_size, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+
+    const float inv_size = 1.0f / size;
+    for (float& g : gradients) g *= inv_size;
+}
+
+int main(int argc, char* argv[]) {
+    MPI_Init(&argc, &argv);
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    std::vector<float> gradients = {1.0f, 2.0f, 3.0f};
+    synchronize_gradients(gradients, rank, size);
+
+    if (rank == 0) {
+        std::cout << "Synchronized Gradients: ";
+        for (float g : gradients) std::cout << g << ' ';
+        std::cout << std::endl;
+    }
+
+    MPI_Finalize();
+    return 0;
+}
