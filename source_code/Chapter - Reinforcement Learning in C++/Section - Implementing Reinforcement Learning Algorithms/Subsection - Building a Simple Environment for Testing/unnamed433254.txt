@@ -1,0 +1,57 @@
+#include <random>
+#include <limits>
+
+struct State { int x, y; };
+
+struct Q {
+    static constexpr int W = 80, H = 60, A = 4;          // grid size & actions
+    static constexpr double ALPHA = 0.1, GAMMA = 0.95;   // learning rates
+    double q[W][H][A] = {};                              // zero-initialised
+} g_q;
+
+int select_action(const State& s) {                      // ε-greedy
+    static std::mt19937 rng{std::random_device{}()};
+    static std::uniform_real_distribution<double> dist(0., 1.);
+    static std::uniform_int_distribution<int> randA(0, Q::A - 1);
+
+    constexpr double EPS = 0.1;
+    if (dist(rng) < EPS) return randA(rng);
+
+    int best = 0;
+    double maxQ = -std::numeric_limits<double>::infinity();
+    for (int a = 0; a < Q::A; ++a)
+        if (g_q.q[s.x][s.y][a] > maxQ) { maxQ = g_q.q[s.x][s.y][a]; best = a; }
+    return best;
+}
+
+void move_agent(State& s, int a) {                       // 0=N,1=E,2=S,3=W
+    constexpr int dx[] = {0, 1, 0, -1}, dy[] = {-1, 0, 1, 0};
+    int nx = s.x + dx[a], ny = s.y + dy[a];
+    if (nx >= 0 && nx < Q::W && ny >= 0 && ny < Q::H) { s.x = nx; s.y = ny; }
+}
+
+double get_reward(const State& s, const State& goal) {   // sparse reward
+    return (s.x == goal.x && s.y == goal.y) ? 1.0 : 0.0;
+}
+
+void update_q_table(const State& s, int a, double r, const State& s2) {
+    double maxQ = -std::numeric_limits<double>::infinity();
+    for (int a2 = 0; a2 < Q::A; ++a2)
+        maxQ = std::max(maxQ, g_q.q[s2.x][s2.y][a2]);
+    g_q.q[s.x][s.y][a] += Q::ALPHA * (r + Q::GAMMA * maxQ - g_q.q[s.x][s.y][a]);
+}
+
+State train_episode(const State& start, const State& goal) {
+    constexpr int MAX_STEPS = 100;
+    State s = start;
+    for (int step = 0; step < MAX_STEPS; ++step) {
+        int a = select_action(s);
+        State s2 = s;
+        move_agent(s2, a);
+        double r = get_reward(s2, goal);
+        update_q_table(s, a, r, s2);
+        s = s2;
+        if (s.x == goal.x && s.y == goal.y) break;
+    }
+    return s;
+}
