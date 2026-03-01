@@ -1,0 +1,9 @@
+#include <type_traits>
+
+template<typename T>
+constexpr auto square(T&& x)
+    -> std::enable_if_t<std::is_arithmetic_v<std::decay_t<T>>,
+                        std::decay_t<T>>
+{
+    return x * x;
+}
