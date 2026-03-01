@@ -1,0 +1,20 @@
+#include <cstdint>
+#include <vector>
+#include <iostream>
+#include <stdexcept>
+
+void run_inference(const std::vector<int8_t>& quantized_weights,
+                   const std::vector<float>& pruned_weights,
+                   const std::vector<float>& input)
+{
+    if (quantized_weights.size() != pruned_weights.size())
+        throw std::invalid_argument("Weight vectors must have equal length");
+
+    for (size_t i = 0; i < input.size(); ++i) {
+        float output = 0.0f;
+        for (size_t j = 0; j < quantized_weights.size(); ++j) {
+            output += static_cast<float>(quantized_weights[j]) * pruned_weights[j] * input[i];
+        }
+        std::cout << "Output " << i << ": " << output << '\n';
+    }
+}
