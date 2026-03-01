@@ -1,0 +1,13 @@
+#include <arrow/io/memory.h>
+#include <arrow/ipc/reader.h>
+#include <arrow/status.h>
+#include <arrow/table.h>
+
+// buffer is assumed to be a std::shared_ptr<arrow::Buffer>
+arrow::io::BufferReader reader(buffer);
+
+std::shared_ptr<arrow::ipc::RecordBatchReader> batch_reader;
+ARROW_ASSIGN_OR_RAISE(batch_reader, arrow::ipc::RecordBatchStreamReader::Open(&reader));
+
+std::shared_ptr<arrow::Table> deserialized_table;
+ARROW_RETURN_NOT_OK(batch_reader->ReadAll(&deserialized_table));
