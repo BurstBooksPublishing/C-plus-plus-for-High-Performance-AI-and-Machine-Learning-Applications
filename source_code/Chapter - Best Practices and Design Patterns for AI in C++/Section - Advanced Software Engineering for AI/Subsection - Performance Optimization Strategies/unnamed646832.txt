@@ -1,0 +1,15 @@
+#include <vector>
+#include <cmath>   // std::sin, M_PI
+
+static const std::vector<double> buildSinTable() {
+    std::vector<double> t(360);
+    constexpr double deg2rad = M_PI / 180.0;
+    for (int i = 0; i < 360; ++i) t[i] = std::sin(i * deg2rad);
+    return t;
+}
+
+// Thread-safe, one-time initialization
+inline const std::vector<double>& sinTable() {
+    static const std::vector<double> table = buildSinTable();
+    return table;
+}
