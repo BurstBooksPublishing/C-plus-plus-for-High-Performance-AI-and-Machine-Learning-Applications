@@ -1,0 +1,27 @@
+#include <vector>
+#include <stdexcept>
+
+void backprop(const std::vector<double>& input,
+              const std::vector<double>& output,
+              const std::vector<double>& targets,
+              std::vector<std::vector<double>>& weights,
+              std::vector<double>& biases,
+              double learning_rate)
+{
+    if (output.size() != targets.size() ||
+        weights.size() != output.size() ||
+        weights.empty() || weights[0].size() != input.size() ||
+        biases.size() != output.size())
+        throw std::invalid_argument("Dimension mismatch");
+
+    std::vector<double> d_loss_d_output(output.size());
+    const double scale = 2.0 / output.size();
+    for (size_t i = 0; i < output.size(); ++i)
+        d_loss_d_output[i] = scale * (output[i] - targets[i]);
+
+    for (size_t i = 0; i < weights.size(); ++i) {
+        for (size_t j = 0; j < weights[i].size(); ++j)
+            weights[i][j] -= learning_rate * d_loss_d_output[i] * input[j];
+        biases[i] -= learning_rate * d_loss_d_output[i];
+    }
+}
