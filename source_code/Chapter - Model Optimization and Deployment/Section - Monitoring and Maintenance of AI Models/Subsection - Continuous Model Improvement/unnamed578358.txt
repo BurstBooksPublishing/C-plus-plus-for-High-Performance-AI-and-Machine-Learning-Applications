@@ -1,0 +1,49 @@
+#include <iostream>
+#include <unordered_map>
+#include <mutex>
+#include <stdexcept>
+
+struct ModelMetrics {
+    double accuracy  = 0.0;
+    double precision = 0.0;
+    double recall    = 0.0;
+    double latency   = 0.0;
+};
+
+class MetricsRegistry {
+public:
+    void log(int version, const ModelMetrics& m) {
+        std::lock_guard<std::mutex> lock(mx_);
+        if (m.accuracy  < 0 || m.accuracy  > 1 ||
+            m.precision < 0 || m.precision > 1 ||
+            m.recall    < 0 || m.recall    > 1 ||
+            m.latency   < 0)
+            throw std::invalid_argument("metric out of range");
+        store_[version] = m;
+    }
+
+    ModelMetrics get(int version) const {
+        std::lock_guard<std::mutex> lock(mx_);
+        auto it = store_.find(version);
+        if (it == store_.end()) throw std::out_of_range("version not found");
+        return it->second;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const MetricsRegistry& r);
+
+private:
+    mutable std::mutex mx_;
+    std::unordered_map<int, ModelMetrics> store_;
+};
+
+std::ostream& operator<<(std::ostream& os, const MetricsRegistry& r) {
+    std::lock_guard<std::mutex> lock(r.mx_);
+    for (const auto& [v, m] : r.store_) {
+        os << "Model Version: " << v << '\n'
+           << "Accuracy:  " << m.accuracy  << '\n'
+           << "Precision: " << m.precision << '\n'
+           << "Recall:    " << m.recall    << '\n'
+           << "Latency:   " << m.latency   << '\n';
+    }
+    return os;
+}
