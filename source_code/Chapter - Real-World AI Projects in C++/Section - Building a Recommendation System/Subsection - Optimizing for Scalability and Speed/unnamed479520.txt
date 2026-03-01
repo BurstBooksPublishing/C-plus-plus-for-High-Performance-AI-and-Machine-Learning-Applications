@@ -1,0 +1,32 @@
+#include <vector>
+#include <algorithm>   // std::fill, std::transform, ...
+#include <execution>   // std::execution::par_unseq (C++17)
+#include <cstddef>     // std::size_t
+
+// Compute C = A * B^T  (example workload)
+// A: n×k  B: m×k  C: n×m
+void multiply(const float* __restrict A,
+              const float* __restrict B,
+              float* __restrict C,
+              std::size_t n,
+              std::size_t m,
+              std::size_t k) noexcept
+{
+    // cache-friendly tiling size (tuned once per target CPU)
+    constexpr std::size_t TS = 64 / sizeof(float);   // 64-byte cache line
+
+    #pragma omp parallel for collapse(2) schedule(dynamic)
+    for (std::size_t i = 0; i < n; i += TS) {
+        for (std::size_t j = 0; j < m; j += TS) {
+            for (std::size_t ii = i; ii < std::min(i + TS, n); ++ii) {
+                for (std::size_t jj = j; jj < std::min(j + TS, m); ++jj) {
+                    float sum = 0.0f;
+                    #pragma omp simd reduction(+:sum)
+                    for (std::size_t kk = 0; kk < k; ++kk)
+                        sum += A[ii * k + kk] * B[jj * k + kk];
+                    C[ii * m + jj] = sum;
+                }
+            }
+        }
+    }
+}
